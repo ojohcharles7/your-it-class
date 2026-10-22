@@ -64,7 +64,9 @@ export async function requireAdmin() {
     redirect("/admin/login");
   }
 
-  if (!isAdminRole(current.profile.role)) redirect("/dashboard");
+  if (!isAdminRole(current.profile.role)) {
+    redirect(current.profile.role === "teacher" ? "/teacher" : "/dashboard");
+  }
   return current;
 }
 
