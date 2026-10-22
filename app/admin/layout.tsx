@@ -1,18 +1,38 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getAdminClient } from "@/lib/supabase/admin-data";
 import { paymentsProvider } from "@/lib/env";
 import { fixtureCourses } from "@/lib/fixtures";
 
-export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s · Admin · Your IT Class" },
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const requestHeaders = await headers();
+  const label = requestHeaders.get("x-console-base") === "/master" ? "Master" : "Admin";
+  return {
+    title: { default: label, template: `%s · ${label} · Your IT Class` },
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const current = await requireAdmin();
+  const requestHeaders = await headers();
+  const base = requestHeaders.get("x-console-base") === "/master" ? "/master" : "/admin";
+  const pathname = requestHeaders.get("x-pathname") ?? base;
+
+  const current = await requireAdmin(base === "/master" ? { login: "/masteruser" } : undefined);
   const localMode = current.id === "local-admin";
+
+  if (base === "/master" && current.profile.role !== "super_admin") {
+    if (current.profile.role === "admin") redirect("/admin");
+    if (current.profile.role === "teacher") redirect("/teacher");
+    redirect("/dashboard");
+  }
+
+  if (!localMode && base === "/admin" && current.profile.role === "super_admin") {
+    redirect(`/master${pathname.replace(/^\/admin/, "")}`);
+  }
 
   if (localMode) {
     return (

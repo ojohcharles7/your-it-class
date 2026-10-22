@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -27,6 +26,7 @@ import {
   Zap,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
+import { Link, consoleHref } from "@/components/console-link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { roleLabel } from "@/lib/roles";
 import type { Role } from "@/lib/types";
@@ -51,6 +51,7 @@ type AdminShellProps = {
 const workspaceNav = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
+  { href: "/admin/courses/new", label: "Add course", icon: Plus },
   { href: "/admin/content", label: "Class content", icon: FolderOpen },
   { href: "/admin/students", label: "Students", icon: Users },
   { href: "/admin/teachers", label: "Teachers", icon: UserCog },
@@ -63,26 +64,36 @@ const shortcutNav = [
   { href: "/", label: "View website", icon: ExternalLink },
 ];
 
+function normalizeConsolePath(pathname: string) {
+  return pathname.replace(/^\/master(?=\/|$)/, "/admin");
+}
+
 function isActive(pathname: string, href: string) {
-  return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+  const path = normalizeConsolePath(pathname);
+  if (href === "/admin") return path === "/admin";
+  if (href === "/admin/courses") {
+    return path === "/admin/courses" || /^\/admin\/courses\/(?!new$)[^/]+$/.test(path);
+  }
+  return path.startsWith(href);
 }
 
 function breadcrumbFor(pathname: string) {
-  if (pathname === "/admin") return [{ label: "Overview", href: "/admin" }];
-  if (pathname === "/admin/courses/new") {
+  const path = normalizeConsolePath(pathname);
+  if (path === "/admin") return [{ label: "Overview", href: "/admin" }];
+  if (path === "/admin/courses/new") {
     return [
       { label: "Courses", href: "/admin/courses" },
-      { label: "New course", href: pathname },
+      { label: "New course", href: path },
     ];
   }
-  if (/^\/admin\/courses\/[^/]+$/.test(pathname)) {
+  if (/^\/admin\/courses\/[^/]+$/.test(path)) {
     return [
       { label: "Courses", href: "/admin/courses" },
-      { label: "Edit course", href: pathname },
+      { label: "Edit course", href: path },
     ];
   }
-  const match = workspaceNav.find((item) => item.href !== "/admin" && pathname.startsWith(item.href));
-  return match ? [{ label: match.label, href: match.href }] : [{ label: "Admin", href: "/admin" }];
+  const match = workspaceNav.find((item) => item.href !== "/admin" && path.startsWith(item.href));
+  return match ? [{ label: match.label, href: match.href }] : [{ label: "Console", href: "/admin" }];
 }
 
 export function AdminShell({ user, counts, paymentsMode, localMode = false, children }: AdminShellProps) {
@@ -93,6 +104,8 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState("");
   const paletteInput = useRef<HTMLInputElement>(null);
+  const base = pathname.startsWith("/master") ? "/master" : "/admin";
+  const consoleLabel = base === "/master" ? "Master" : "Admin";
   const breadcrumb = breadcrumbFor(pathname);
   const firstName = user.name.split(/\s+/)[0] || "Admin";
   const visibleNav = workspaceNav;
@@ -134,9 +147,9 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
   }, [mobileOpen, paletteOpen]);
 
   const paletteItems = [
-    ...visibleNav.map((item) => ({ ...item, group: "Pages" })),
+    ...visibleNav.map((item) => ({ ...item, href: consoleHref(item.href, pathname), group: "Pages" })),
     ...shortcutNav.map((item) => ({ ...item, group: "Shortcuts" })),
-    { href: "/admin/courses/new", label: "Create a new course", icon: Plus, group: "Actions" },
+    { href: consoleHref("/admin/courses/new", pathname), label: "Create a new course", icon: Plus, group: "Actions" },
   ].filter((item) => `${item.label} ${item.href}`.toLowerCase().includes(query.toLowerCase()));
 
   const countsFor = (href: string) => {
@@ -308,7 +321,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
             </button>
 
             <nav className="hidden items-center gap-1.5 text-xs sm:flex" aria-label="Breadcrumb">
-              <Link href="/admin" className="font-medium text-[var(--muted)] hover:text-[var(--ink)]">Admin</Link>
+              <Link href="/admin" className="font-medium text-[var(--muted)] hover:text-[var(--ink)]">{consoleLabel}</Link>
               {breadcrumb.map((item, index) => (
                 <span key={item.href} className="flex items-center gap-1.5">
                   <ChevronRight size={13} className="text-[var(--muted)]" />
@@ -321,7 +334,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
               ))}
             </nav>
 
-            <span className="ml-1 text-sm font-semibold sm:hidden">Admin</span>
+            <span className="ml-1 text-sm font-semibold sm:hidden">{consoleLabel}</span>
 
             {localMode && (
               <span className="ml-2 hidden items-center gap-1 rounded-lg border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[var(--warning)] md:inline-flex">
@@ -427,7 +440,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
         <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
 
         <footer className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-2 px-4 pb-6 text-[11px] text-[var(--muted)] sm:px-6 lg:px-8">
-          <span>Your IT Class · Admin control center</span>
+          <span>Your IT Class · {consoleLabel} control center</span>
           <span className="inline-flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 rounded-full ${localMode ? "bg-[var(--warning)]" : "bg-[var(--success)]"}`} />
             {localMode ? "Sample data · local preview" : "Supabase connected"}

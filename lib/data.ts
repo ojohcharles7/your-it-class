@@ -369,6 +369,53 @@ export async function getEnrolledCourses(userId: string): Promise<EnrolledCourse
   return result;
 }
 
+export type DailyLearningActivity = {
+  date: string;
+  label: string;
+  lessons: number;
+};
+
+function buildActivityDays(start: Date, timestamps: string[]): DailyLearningActivity[] {
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return {
+      date: date.toISOString(),
+      label: date.toLocaleDateString("en-NG", { weekday: "short" }),
+      key: date.toDateString(),
+      lessons: 0,
+    };
+  });
+
+  for (const timestamp of timestamps) {
+    const key = new Date(timestamp).toDateString();
+    const day = days.find((item) => item.key === key);
+    if (day) day.lessons += 1;
+  }
+
+  return days.map(({ date, label, lessons }) => ({ date, label, lessons }));
+}
+
+export async function getLearningActivity(userId: string): Promise<DailyLearningActivity[]> {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - 6);
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return buildActivityDays(start, []);
+
+  const { data } = await supabase
+    .from("lesson_progress")
+    .select("completed_at")
+    .eq("user_id", userId)
+    .gte("completed_at", start.toISOString());
+
+  return buildActivityDays(
+    start,
+    ((data ?? []) as { completed_at: string }[]).map((row) => row.completed_at),
+  );
+}
+
 export async function getLearningCourse(userId: string, slug: string) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return null;

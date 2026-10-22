@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { BookOpen, GraduationCap, Mail, ShieldCheck, UserCog, UserPlus, Users } from "lucide-react";
 import {
   assignTeacherCoursesAction,

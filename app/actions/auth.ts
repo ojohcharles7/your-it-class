@@ -73,7 +73,8 @@ export async function loginAction(_state: AuthState, formData: FormData): Promis
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
       revalidatePath("/", "layout");
       if (profile?.role === "teacher") redirect("/teacher");
-      if (profile?.role === "admin" || profile?.role === "super_admin") redirect("/admin");
+      if (profile?.role === "super_admin") redirect("/master");
+      if (profile?.role === "admin") redirect("/admin");
     }
   }
 
@@ -111,7 +112,7 @@ export async function masterLoginAction(_state: AuthState, formData: FormData): 
       password,
       options: {
         data: { full_name: "Master Admin" },
-        emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/admin")}`,
+        emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/master")}`,
       },
     });
 
@@ -165,7 +166,7 @@ export async function masterLoginAction(_state: AuthState, formData: FormData): 
   }
 
   revalidatePath("/", "layout");
-  redirect("/admin");
+  redirect("/master");
 }
 
 export async function signupAction(_state: AuthState, formData: FormData): Promise<AuthState> {

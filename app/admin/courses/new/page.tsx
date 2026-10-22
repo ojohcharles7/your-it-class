@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { ChevronLeft, CloudOff } from "lucide-react";
 import { CourseForm } from "@/components/admin/course-form";
 import { LocalModeBanner } from "@/components/admin/local-mode-banner";

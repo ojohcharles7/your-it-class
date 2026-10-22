@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -18,7 +18,9 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { CompletionDonut, RevenueAreaChart, Sparkline } from "@/components/admin/charts";
+import { RevenueAreaChart, Sparkline } from "@/components/admin/charts";
+import { InteractiveBarChart } from "@/components/charts/interactive-bar-chart";
+import { InteractiveDonut } from "@/components/charts/interactive-donut";
 import { LocalAdminOverview } from "@/components/admin/local-overview";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -174,7 +176,9 @@ export default async function AdminOverviewPage() {
   const revenue = successful.reduce((sum, payment) => sum + Number(payment.amount_kobo), 0);
   const completed = enrollments.filter((enrollment) => enrollment.status === "completed").length;
   const completionRate = percent(completed, enrollments.length);
-  const passRate = attempts.length ? percent(attempts.filter((attempt) => attempt.passed).length, attempts.length) : 0;
+  const passedAttempts = attempts.filter((attempt) => attempt.passed).length;
+  const failedAttempts = attempts.length - passedAttempts;
+  const passRate = attempts.length ? percent(passedAttempts, attempts.length) : 0;
   const averageOrder = successful.length ? Math.round(revenue / successful.length) : 0;
   const drafts = courses.filter((course) => !course.published);
   const coursesWithExams = new Set(exams.map((exam) => exam.course_id));
@@ -336,6 +340,11 @@ export default async function AdminOverviewPage() {
           <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
             {today}
+            {current.profile.role === "super_admin" && (
+              <span className="ml-1 rounded-md bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-1.5 py-0.5 text-[9px] font-bold tracking-[0.12em] text-[var(--accent)]">
+                Master console
+              </span>
+            )}
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
             {greeting()}, {firstName}.
@@ -345,9 +354,9 @@ export default async function AdminOverviewPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <a href="/admin/export?type=payments" className="btn btn-sm">
+          <Link href="/admin/export?type=payments" className="btn btn-sm">
             <Download size={14} /> Export report
-          </a>
+          </Link>
           <Link href="/admin/courses/new" className="btn btn-primary btn-sm">
             <Plus size={15} /> New course
           </Link>
@@ -442,8 +451,18 @@ export default async function AdminOverviewPage() {
               <BadgeCheck size={18} className="text-[var(--success)]" />
             </div>
             <div className="mt-5">
-              <CompletionDonut percent={completionRate} completed={completed} active={enrollments.length - completed} />
+              <InteractiveDonut
+                segments={[
+                  { label: "Completed", value: completed, color: "var(--success)" },
+                  { label: "In progress", value: Math.max(0, enrollments.length - completed), color: "var(--accent)" },
+                ]}
+                centerValue={`${completionRate}%`}
+                centerLabel="Completion"
+              />
             </div>
+            <p className="mt-4 border-t border-[var(--line)] pt-3 text-[10px] leading-relaxed text-[var(--muted)]">
+              Hover a slice to inspect it. Completion is based on enrolments marked completed after the final exam.
+            </p>
           </section>
 
           <section className="admin-card p-5">
@@ -470,6 +489,65 @@ export default async function AdminOverviewPage() {
             </div>
           </section>
         </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <section className="admin-card p-5 sm:p-6 xl:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                <TrendingUp size={18} />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold">Growth momentum</h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">New students, enrolments and certificates over the last 6 months</p>
+              </div>
+            </div>
+            <span className="rounded-md bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-1 text-[10px] font-bold text-[var(--accent)]">
+              {months.reduce((sum, month) => sum + month.students, 0)} new students
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <InteractiveBarChart
+              labels={months.map((month) => month.label)}
+              series={[
+                { name: "New students", color: "var(--accent)", values: months.map((month) => month.students) },
+                { name: "Enrolments", color: "var(--accent-2)", values: months.map((month) => month.enrollments) },
+                { name: "Certificates", color: "var(--success)", values: months.map((month) => month.certificates) },
+              ]}
+            />
+          </div>
+        </section>
+
+        <section className="admin-card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold">Exam outcomes</h2>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Passed vs retry across all attempts</p>
+            </div>
+            <BadgeCheck size={18} className="text-[var(--accent)]" />
+          </div>
+          {attempts.length ? (
+            <div className="mt-5">
+              <InteractiveDonut
+                segments={[
+                  { label: "Passed", value: passedAttempts, color: "var(--success)" },
+                  { label: "Needs retry", value: failedAttempts, color: "var(--warning)" },
+                ]}
+                centerValue={`${passRate}%`}
+                centerLabel="Pass rate"
+              />
+              <p className="mt-4 border-t border-[var(--line)] pt-3 text-[10px] leading-relaxed text-[var(--muted)]">
+                {passedAttempts} of {attempts.length} attempts passed. Hover a slice to inspect it.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-6 rounded-xl border border-dashed border-[var(--line)] p-4 text-xs leading-relaxed text-[var(--muted)]">
+              No exam attempts yet. Outcomes will appear here once learners start taking final exams.
+            </p>
+          )}
+        </section>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.45fr_0.55fr]">

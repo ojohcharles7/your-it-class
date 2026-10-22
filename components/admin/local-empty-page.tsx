@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import type { LucideIcon } from "lucide-react";
 import { Plus } from "lucide-react";
 import { LocalModeBanner } from "@/components/admin/local-mode-banner";

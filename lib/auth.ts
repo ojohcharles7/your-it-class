@@ -43,7 +43,7 @@ export async function requireUser(nextPath = "/dashboard") {
   return current;
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(options?: { login?: string }) {
   const current = await getCurrentUser();
 
   if (!current) {
@@ -61,7 +61,7 @@ export async function requireAdmin() {
         } satisfies Profile,
       };
     }
-    redirect("/admin/login");
+    redirect(options?.login ?? "/admin/login");
   }
 
   if (!isAdminRole(current.profile.role)) {

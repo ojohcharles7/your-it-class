@@ -14,7 +14,12 @@ export const metadata: Metadata = {
 
 export default async function MasterUserPage() {
   const current = await getCurrentUser();
-  if (current?.profile.role === "super_admin") redirect("/admin");
+  if (current) {
+    if (current.profile.role === "super_admin") redirect("/master");
+    if (current.profile.role === "admin") redirect("/admin");
+    if (current.profile.role === "teacher") redirect("/teacher");
+    redirect("/dashboard");
+  }
 
   return (
     <div>
@@ -31,7 +36,8 @@ export default async function MasterUserPage() {
         <KeyRound size={15} className="mt-0.5 shrink-0 text-[var(--accent)]" />
         <span>
           Master email: <strong className="text-[var(--ink)]">{masterAdminEmail}</strong>. The password is the master
-          password you set for this account. After signing in you will land on <code className="font-mono">/admin</code>.
+          password you set for this account. After signing in you will land on your private{" "}
+          <code className="font-mono">/master</code> console.
         </span>
       </div>
 

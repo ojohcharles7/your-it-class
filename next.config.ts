@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
       static: 300,
     },
   },
+  async rewrites() {
+    return [
+      { source: "/master", destination: "/admin" },
+      { source: "/master/:path*", destination: "/admin/:path*" },
+    ];
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "i.ytimg.com" }],
   },

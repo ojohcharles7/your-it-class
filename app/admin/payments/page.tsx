@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { Download, Receipt, Search, TrendingUp, Wallet } from "lucide-react";
 import { CopyButton } from "@/components/admin/copy-button";
 import { LocalEmptyPage } from "@/components/admin/local-empty-page";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { Award, Download, ExternalLink, Printer, Search, ShieldCheck } from "lucide-react";
 import { CopyButton } from "@/components/admin/copy-button";
 import { LocalEmptyPage } from "@/components/admin/local-empty-page";
@@ -76,9 +76,9 @@ export default async function AdminCertificatesPage({ searchParams }: { searchPa
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Certificates</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Every verified credential issued by the academy.</p>
         </div>
-        <a href="/admin/export?type=certificates" className="btn btn-sm self-start sm:self-auto">
+        <Link href="/admin/export?type=certificates" className="btn btn-sm self-start sm:self-auto">
           <Download size={14} /> Export registry
-        </a>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

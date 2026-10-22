@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, BookOpen, CreditCard, FolderOpen, Gauge, LogOut, ShieldCheck, Users } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";

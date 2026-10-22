@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import {
   Download,
   ExternalLink,
@@ -106,9 +106,9 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
         </div>
         <div className="flex flex-wrap gap-2">
           {!localMode && (
-            <a href="/admin/export?type=courses" className="btn btn-sm">
+            <Link href="/admin/export?type=courses" className="btn btn-sm">
               <Download size={14} /> Export
-            </a>
+            </Link>
           )}
           <Link href="/admin/courses/new" className="btn btn-primary btn-sm">
             <Plus size={15} /> New course

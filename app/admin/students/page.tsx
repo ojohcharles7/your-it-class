@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { Download, GraduationCap, Search, ShieldCheck, UserCog, UserPlus, Users } from "lucide-react";
 import { setRoleAction } from "@/app/admin/actions";
 import { LocalEmptyPage } from "@/components/admin/local-empty-page";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, Layers, ListChecks, Users, Wallet } from "lucide-react";
 import { CourseForm } from "@/components/admin/course-form";

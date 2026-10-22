@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -15,7 +15,9 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { CompletionDonut, RevenueAreaChart, Sparkline } from "@/components/admin/charts";
+import { RevenueAreaChart, Sparkline } from "@/components/admin/charts";
+import { InteractiveBarChart } from "@/components/charts/interactive-bar-chart";
+import { InteractiveDonut } from "@/components/charts/interactive-donut";
 import { fixtureCourses, fixtureReviews } from "@/lib/fixtures";
 import { formatDate, initials, naira, timeAgo } from "@/lib/utils";
 
@@ -48,6 +50,7 @@ export function LocalAdminOverview({ name }: { name: string }) {
       label: date.toLocaleDateString("en-NG", { month: "short" }),
       revenue: Math.round(demoRevenue * monthlyShare[index]),
       students: Math.round(totalLearners * studentsShare[index]),
+      enrollments: Math.round(totalLearners * monthlyShare[index] * 1.35),
       certificates: Math.round(146 * certificatesShare[index]),
     };
   });
@@ -215,8 +218,18 @@ export function LocalAdminOverview({ name }: { name: string }) {
               <Award size={18} className="text-[var(--success)]" />
             </div>
             <div className="mt-5">
-              <CompletionDonut percent={completion} completed={146} active={68} />
+              <InteractiveDonut
+                segments={[
+                  { label: "Completed", value: 146, color: "var(--success)" },
+                  { label: "In progress", value: 68, color: "var(--accent)" },
+                ]}
+                centerValue={`${completion}%`}
+                centerLabel="Completion"
+              />
             </div>
+            <p className="mt-4 border-t border-[var(--line)] pt-3 text-[10px] leading-relaxed text-[var(--muted)]">
+              Illustrative cohort. Hover a slice to inspect the sample breakdown.
+            </p>
           </section>
 
           <section className="admin-card p-5">
@@ -248,6 +261,59 @@ export function LocalAdminOverview({ name }: { name: string }) {
             </div>
           </section>
         </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <section className="admin-card p-5 sm:p-6 xl:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                <TrendingUp size={18} />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold">Illustrative momentum</h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">Sample learners, enrolments and certificates over 6 months</p>
+              </div>
+            </div>
+            <span className="rounded-md bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-1 text-[10px] font-bold text-[var(--accent)]">
+              Demo data
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <InteractiveBarChart
+              labels={months.map((month) => month.label)}
+              series={[
+                { name: "Learners", color: "var(--accent)", values: months.map((month) => month.students) },
+                { name: "Enrolments", color: "var(--accent-2)", values: months.map((month) => month.enrollments) },
+                { name: "Certificates", color: "var(--success)", values: months.map((month) => month.certificates) },
+              ]}
+            />
+          </div>
+        </section>
+
+        <section className="admin-card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold">Sample outcomes</h2>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Illustrative exam passing mix</p>
+            </div>
+            <Award size={18} className="text-[var(--warning)]" />
+          </div>
+          <div className="mt-5">
+            <InteractiveDonut
+              segments={[
+                { label: "Passed", value: 118, color: "var(--success)" },
+                { label: "Needs retry", value: 28, color: "var(--warning)" },
+              ]}
+              centerValue="81%"
+              centerLabel="Pass rate"
+            />
+          </div>
+          <p className="mt-4 border-t border-[var(--line)] pt-3 text-[10px] leading-relaxed text-[var(--muted)]">
+            Sample outcomes only. Connect Supabase to replace this with live exam results.
+          </p>
+        </section>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.45fr_0.55fr]">

@@ -9,8 +9,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { EnrolledCourseCard } from "@/components/dashboard/enrolled-course-card";
+import { InteractiveBarChart } from "@/components/charts/interactive-bar-chart";
+import { InteractiveDonut } from "@/components/charts/interactive-donut";
 import { requireUser } from "@/lib/auth";
-import { getCertificates, getEnrolledCourses, getExamAttempts } from "@/lib/data";
+import { getCertificates, getEnrolledCourses, getExamAttempts, getLearningActivity } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -30,18 +32,28 @@ export default async function DashboardOverviewPage({
   searchParams: Promise<{ payment?: string }>;
 }) {
   const [{ payment }, current] = await Promise.all([searchParams, requireUser()]);
-  const [courses, attempts, certificates] = await Promise.all([
+  const [courses, attempts, certificates, activity] = await Promise.all([
     getEnrolledCourses(current.id),
     getExamAttempts(current.id),
     getCertificates(current.id),
+    getLearningActivity(current.id),
   ]);
 
   const averageProgress = courses.length
     ? Math.round(courses.reduce((sum, course) => sum + course.progress, 0) / courses.length)
     : 0;
   const completed = courses.filter((course) => course.progress === 100).length;
-  const inProgress = courses.filter((course) => course.progress < 100);
+  const inProgress = courses.filter((course) => course.progress > 0 && course.progress < 100);
+  const notStarted = courses.filter((course) => course.progress === 0).length;
   const firstName = (current.profile.fullName || "there").split(" ")[0];
+
+  const activityDays = activity.map((day) => ({
+    ...day,
+    exams: attempts.filter(
+      (attempt) => new Date(attempt.completedAt).toDateString() === new Date(day.date).toDateString(),
+    ).length,
+  }));
+  const weeklyLessons = activityDays.reduce((sum, day) => sum + day.lessons, 0);
 
   const kpis = [
     { label: "Enrolled courses", value: courses.length, icon: BookOpen, tone: "text-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]" },
@@ -103,6 +115,57 @@ export default async function DashboardOverviewPage({
         </div>
       ) : (
         <>
+          <div className="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
+            <section className="glass p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 text-base font-semibold">
+                    <TrendingUp size={17} className="text-[var(--accent)]" /> Learning activity
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">Lessons and exams over the last 7 days</p>
+                </div>
+                <span className="rounded-md bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-1 text-[10px] font-bold text-[var(--accent)]">
+                  {weeklyLessons} lesson{weeklyLessons === 1 ? "" : "s"} this week
+                </span>
+              </div>
+              <div className="mt-5">
+                <InteractiveBarChart
+                  labels={activityDays.map((day) => day.label)}
+                  series={[
+                    { name: "Lessons", color: "var(--accent)", values: activityDays.map((day) => day.lessons) },
+                    { name: "Exams", color: "var(--accent-2)", values: activityDays.map((day) => day.exams) },
+                  ]}
+                  height={180}
+                />
+              </div>
+            </section>
+
+            <section className="glass p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-base font-semibold">
+                    <Award size={17} className="text-[var(--warning)]" /> Course progress
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">Where you are across your library</p>
+                </div>
+              </div>
+              <div className="mt-5">
+                <InteractiveDonut
+                  segments={[
+                    { label: "Completed", value: completed, color: "var(--success)" },
+                    { label: "In progress", value: inProgress.length, color: "var(--accent)" },
+                    { label: "Not started", value: notStarted, color: "var(--muted)" },
+                  ]}
+                  centerValue={`${averageProgress}%`}
+                  centerLabel="Avg progress"
+                />
+              </div>
+              <p className="mt-4 border-t border-[var(--line)] pt-3 text-[10px] leading-relaxed text-[var(--muted)]">
+                Hover or tap a slice to inspect your course mix.
+              </p>
+            </section>
+          </div>
+
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-bold tracking-tight">Continue learning</h2>

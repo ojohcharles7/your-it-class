@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { ArrowRight, CloudOff } from "lucide-react";
 
 export function LocalModeBanner({ message }: { message: string }) {

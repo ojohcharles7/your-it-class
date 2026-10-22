@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { BookOpen, ExternalLink, FileText, FolderOpen, Layers, Video } from "lucide-react";
 import { deleteResourceAction } from "@/app/admin/actions";
 import { LessonEditor } from "@/components/admin/lesson-editor";

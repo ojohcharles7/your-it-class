@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/console-link";
 import { useActionState, useState } from "react";
 import { ExternalLink, Loader2, Save } from "lucide-react";
 import { saveCourseAction } from "@/app/admin/actions";
