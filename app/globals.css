@@ -21,7 +21,7 @@
   --bg: #eef2fc;
   --bg-2: #f7ebfd;
   --bg-3: #e7f6f2;
-  --surface: rgba(255, 255, 255, 0.66);
+  --surface: rgba(255, 255, 255, 0.78);
   --surface-solid: #ffffff;
   --surface-2: rgba(255, 255, 255, 0.9);
   --ink: #12161f;
@@ -43,7 +43,7 @@
   --bg: #070b16;
   --bg-2: #140d29;
   --bg-3: #051d26;
-  --surface: rgba(22, 28, 46, 0.62);
+  --surface: rgba(22, 28, 46, 0.74);
   --surface-solid: #0d1322;
   --surface-2: rgba(30, 37, 58, 0.9);
   --ink: #f3f6fb;
@@ -83,7 +83,6 @@ body {
     radial-gradient(900px 620px at 88% 0%, var(--bg-3), transparent 58%),
     radial-gradient(800px 600px at 50% 110%, var(--bg-2), transparent 60%),
     var(--bg);
-  background-attachment: fixed;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -156,8 +155,6 @@ p {
   border: 1px solid var(--line);
   border-radius: 22px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 
 .glass-strong {
@@ -165,8 +162,8 @@ p {
   border: 1px solid var(--line);
   border-radius: 22px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
 }
 
 .gradient-text {
@@ -527,10 +524,10 @@ p {
 }
 
 .admin-topbar {
-  background: color-mix(in srgb, var(--surface-solid) 78%, transparent);
+  background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
 }
 
 .admin-card {
@@ -711,5 +708,26 @@ p {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .glass,
+  .glass-strong {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .glass-strong,
+  .admin-topbar {
+    background: var(--surface-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (hover: none) {
+  .card-hover:hover,
+  .admin-card-hover:hover {
+    transform: none;
   }
 }

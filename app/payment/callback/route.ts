@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { isPaystackConfigured, isSupabaseAdminConfigured, siteUrl } from "@/lib/env";
@@ -67,6 +67,8 @@ export async function GET(request: NextRequest) {
     if (enrollmentError) throw enrollmentError;
 
     revalidatePath("/dashboard");
+    revalidatePath("/");
+    revalidateTag("catalog");
     return NextResponse.redirect(new URL(`/dashboard/courses/${course.slug}?enrolled=1`, siteUrl));
   } catch (error) {
     console.error("Payment verification failed:", error);

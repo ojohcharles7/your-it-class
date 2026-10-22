@@ -5,6 +5,11 @@ import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "@/lib/env";
 export async function middleware(request: NextRequest) {
   if (!isSupabaseConfigured) return NextResponse.next();
 
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some(({ name }) => name.startsWith("sb-") && name.includes("-auth-token"));
+  if (!hasAuthCookie) return NextResponse.next();
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -20,7 +25,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  await supabase.auth.getSession();
   return response;
 }
 

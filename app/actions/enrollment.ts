@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { getCourseById, isEnrolled } from "@/lib/data";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -62,6 +62,8 @@ export async function startEnrollment(_state: EnrollmentState, formData: FormDat
     );
 
     revalidatePath("/dashboard");
+    revalidatePath("/");
+    revalidateTag("catalog");
     redirect(`/dashboard/courses/${course.slug}?enrolled=1`);
   }
 

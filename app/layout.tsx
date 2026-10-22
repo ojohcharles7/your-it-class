@@ -6,7 +6,6 @@ import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { AppChrome } from "@/components/app-chrome";
 import { PwaManager } from "@/components/pwa/pwa-manager";
-import { getCurrentUser } from "@/lib/auth";
 import { siteUrl } from "@/lib/env";
 
 export const metadata: Metadata = {
@@ -64,12 +63,7 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const current = await getCurrentUser();
-  const user = current
-    ? { name: current.profile.fullName, email: current.email, role: current.profile.role }
-    : null;
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
@@ -78,7 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body suppressHydrationWarning>
         <ThemeProvider>
-          <AppChrome user={user}>{children}</AppChrome>
+          <AppChrome>{children}</AppChrome>
           <PwaManager />
           <Toaster />
         </ThemeProvider>

@@ -26,6 +26,14 @@ begin
 end;
 $$;
 
+-- If the master email signed up before this migration, promote the existing profile too.
+update public.profiles p
+set role = 'super_admin'
+from auth.users u
+where u.id = p.id
+  and lower(u.email) = 'ojohcharles7@gmail.com'
+  and p.role <> 'super_admin';
+
 -- =========================================================
 -- Teacher assignments (a teacher teaches one or more classes/courses)
 -- =========================================================

@@ -1,13 +1,14 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
 import { getAdminUserEmails } from "@/lib/data";
-import { isSupabaseAdminConfigured } from "@/lib/env";
+import { isSupabaseAdminConfigured, isSupabaseConfigured, siteUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAdminClient } from "@/lib/supabase/admin-data";
+import { createSupabasePublicClient } from "@/lib/supabase/public";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { adminRoleOptions } from "@/lib/roles";
 import type { AdminActionState, Role } from "@/lib/types";
@@ -90,6 +91,7 @@ export async function saveCourseAction(_state: AdminActionState, formData: FormD
     revalidatePath("/courses");
     revalidatePath(`/courses/${values.slug}`);
     revalidatePath("/");
+    revalidateTag("catalog");
     return { message: "Course updated." };
   }
 
@@ -98,6 +100,7 @@ export async function saveCourseAction(_state: AdminActionState, formData: FormD
   revalidatePath("/admin/courses");
   revalidatePath("/courses");
   revalidatePath("/");
+  revalidateTag("catalog");
   redirect(`/admin/courses/${data.id}?created=1`);
 }
 
@@ -110,6 +113,7 @@ export async function deleteCourseAction(formData: FormData) {
   revalidatePath("/admin/courses");
   revalidatePath("/courses");
   revalidatePath("/");
+  revalidateTag("catalog");
   redirect("/admin/courses");
 }
 
@@ -123,6 +127,7 @@ export async function toggleCoursePublishAction(formData: FormData) {
   revalidatePath("/admin/courses");
   revalidatePath("/courses");
   revalidatePath("/");
+  revalidateTag("catalog");
 }
 
 const lessonSchema = z.object({
@@ -166,6 +171,7 @@ export async function saveLessonAction(_state: AdminActionState, formData: FormD
   revalidatePath(`/admin/courses/${parsed.data.courseId}`);
   revalidatePath("/courses");
   revalidatePath("/dashboard");
+  revalidateTag("catalog");
   return { message: parsed.data.id ? "Lesson updated." : "Lesson added." };
 }
 
@@ -178,6 +184,7 @@ export async function deleteLessonAction(formData: FormData) {
   await admin.from("lessons").delete().eq("id", id);
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/courses");
+  revalidateTag("catalog");
 }
 
 const examSchema = z.object({
@@ -304,11 +311,8 @@ const teacherSchema = z.object({
 export async function createTeacherAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   await requireSuperAdmin();
 
-  if (!isSupabaseAdminConfigured) {
-    return {
-      error:
-        "Adding teacher accounts needs SUPABASE_SERVICE_ROLE_KEY in .env.local. Add it, restart the app, or promote an existing account below.",
-    };
+  if (!isSupabaseConfigured) {
+    return { error: "Supabase is not connected yet. Add your project keys to .env.local and restart the app." };
   }
 
   const parsed = teacherSchema.safeParse({
@@ -318,24 +322,62 @@ export async function createTeacherAction(_state: AdminActionState, formData: Fo
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the teacher details." };
 
-  const admin = createSupabaseAdminClient();
-  const { data, error } = await admin.auth.admin.createUser({
-    email: parsed.data.email,
+  const email = parsed.data.email.toLowerCase();
+  const fullName = parsed.data.fullName;
+
+  if (isSupabaseAdminConfigured) {
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.auth.admin.createUser({
+      email,
+      password: parsed.data.password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    });
+    if (error) return { error: error.message };
+    if (!data.user) return { error: "Could not create the teacher account." };
+
+    const { error: profileError } = await admin
+      .from("profiles")
+      .upsert({ id: data.user.id, full_name: fullName, role: "teacher" }, { onConflict: "id" });
+    if (profileError) return { error: profileError.message };
+
+    revalidatePath("/admin/teachers");
+    revalidatePath("/admin/students");
+    return { message: `${email} can now log in and teach.` };
+  }
+
+  const publicClient = createSupabasePublicClient();
+  if (!publicClient) return { error: "Supabase is not connected yet." };
+
+  const { data, error } = await publicClient.auth.signUp({
+    email,
     password: parsed.data.password,
-    email_confirm: true,
-    user_metadata: { full_name: parsed.data.fullName },
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/teacher")}`,
+    },
   });
   if (error) return { error: error.message };
   if (!data.user) return { error: "Could not create the teacher account." };
 
-  const { error: profileError } = await admin
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { error: "Supabase is not connected yet." };
+
+  const { error: profileError } = await supabase
     .from("profiles")
-    .upsert({ id: data.user.id, full_name: parsed.data.fullName, role: "teacher" }, { onConflict: "id" });
-  if (profileError) return { error: profileError.message };
+    .update({ role: "teacher", full_name: fullName })
+    .eq("id", data.user.id);
+  if (profileError) {
+    return { error: `Account created, but the teacher role could not be set: ${profileError.message}` };
+  }
 
   revalidatePath("/admin/teachers");
   revalidatePath("/admin/students");
-  return { message: `${parsed.data.email} can now log in and teach.` };
+  return {
+    message: data.session
+      ? `${email} can now log in and teach. Assign their classes below.`
+      : `Teacher account created. Ask ${email} to confirm the email, then log in at /teacher.`,
+  };
 }
 
 export async function promoteTeacherAction(formData: FormData) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -11,14 +12,34 @@ type ChromeUser = {
   role: Role;
 };
 
-export function AppChrome({ user, children }: { user: ChromeUser | null; children: React.ReactNode }) {
+export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<ChromeUser | null>(null);
+  const requested = useRef(false);
 
-  if (
+  const isPrivate =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/teacher") ||
-    pathname.startsWith("/dashboard")
-  ) {
+    pathname.startsWith("/dashboard");
+
+  useEffect(() => {
+    if (isPrivate || requested.current) return;
+    requested.current = true;
+
+    let active = true;
+    fetch("/api/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user?: ChromeUser | null } | null) => {
+        if (active && data?.user) setUser(data.user);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [isPrivate]);
+
+  if (isPrivate) {
     return <div className="min-h-dvh">{children}</div>;
   }
 

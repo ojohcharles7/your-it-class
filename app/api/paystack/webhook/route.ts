@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isPaystackConfigured, isSupabaseAdminConfigured } from "@/lib/env";
 import { verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
     );
     if (enrollmentError) throw enrollmentError;
 
+    revalidateTag("catalog");
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Paystack webhook failed:", error);

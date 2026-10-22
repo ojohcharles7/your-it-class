@@ -18,3 +18,5 @@ export const siteUrl = (
 ).replace(/\/$/, "");
 
 export const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || "support@youritclass.com";
+
+export const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL?.trim() || "ojohcharles7@gmail.com").toLowerCase();

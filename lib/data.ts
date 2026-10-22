@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createSupabaseServerClient } from "./supabase/server";
 import { createSupabasePublicClient } from "./supabase/public";
 import { createSupabaseAdminClient } from "./supabase/admin";
@@ -205,7 +206,9 @@ function proxyCourse(course: Course, lessons: Lesson[]): Course {
   return { ...course, lessonsCount: lessons.length };
 }
 
-export async function getCourses(): Promise<Course[]> {
+const CATALOG_TTL = 300;
+
+async function loadCourses(): Promise<Course[]> {
   const supabase = createSupabasePublicClient();
   if (!supabase) return fixtureCourses;
 
@@ -222,12 +225,17 @@ export async function getCourses(): Promise<Course[]> {
   return ((data ?? []) as CourseRow[]).map(mapCourse);
 }
 
+export const getCourses = unstable_cache(loadCourses, ["catalog-courses"], {
+  revalidate: CATALOG_TTL,
+  tags: ["catalog"],
+});
+
 export async function getCategories(): Promise<string[]> {
   const courses = await getCourses();
   return Array.from(new Set(courses.map((course) => course.category))).sort();
 }
 
-export async function getCourseBySlug(slug: string): Promise<CourseDetail | null> {
+async function loadCourseBySlug(slug: string): Promise<CourseDetail | null> {
   const supabase = createSupabasePublicClient();
   if (!supabase) {
     const course = fixtureCourses.find((item) => item.slug === slug);
@@ -273,11 +281,29 @@ export async function getCourseBySlug(slug: string): Promise<CourseDetail | null
   };
 }
 
-export async function getCourseById(id: string): Promise<Course | null> {
+const getCachedCourseBySlug = unstable_cache(loadCourseBySlug, ["catalog-course-by-slug"], {
+  revalidate: CATALOG_TTL,
+  tags: ["catalog"],
+});
+
+export function getCourseBySlug(slug: string): Promise<CourseDetail | null> {
+  return getCachedCourseBySlug(slug);
+}
+
+async function loadCourseById(id: string): Promise<Course | null> {
   const supabase = createSupabasePublicClient();
   if (!supabase) return fixtureCourses.find((course) => course.id === id) ?? null;
   const { data } = await supabase.from("courses").select("*, lessons(count), enrollments(count)").eq("id", id).maybeSingle();
   return data ? mapCourse(data as CourseRow) : null;
+}
+
+const getCachedCourseById = unstable_cache(loadCourseById, ["catalog-course-by-id"], {
+  revalidate: CATALOG_TTL,
+  tags: ["catalog"],
+});
+
+export function getCourseById(id: string): Promise<Course | null> {
+  return getCachedCourseById(id);
 }
 
 export async function getEnrolledCourses(userId: string): Promise<EnrolledCourse[]> {

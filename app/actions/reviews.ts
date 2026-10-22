@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseAdminConfigured } from "@/lib/env";
@@ -53,5 +53,6 @@ export async function submitReviewAction(_state: ReviewState, formData: FormData
   if (error) return { error: error.message };
 
   revalidatePath(`/courses/${parsed.data.slug}`);
+  revalidateTag("catalog");
   return { message: "Thanks — your review has been published." };
 }

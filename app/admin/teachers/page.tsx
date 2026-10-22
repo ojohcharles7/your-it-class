@@ -92,34 +92,41 @@ export default async function AdminTeachersPage({ searchParams }: { searchParams
             <div>
               <h2 className="text-sm font-semibold">Add a teacher</h2>
               <p className="mt-0.5 text-xs text-[var(--muted)]">
+                Create a login for a tech teacher, then assign the classes they teach below.{" "}
                 {isSupabaseAdminConfigured
-                  ? "Create a login for a tech teacher, then assign the classes they teach below."
-                  : "Ask the teacher to create a normal account, then promote their email here. Add SUPABASE_SERVICE_ROLE_KEY to create logins directly."}
+                  ? "The account is confirmed automatically."
+                  : "The teacher may need to confirm their email before first login. Add SUPABASE_SERVICE_ROLE_KEY to skip confirmation."}
               </p>
             </div>
           </div>
 
           <div className="mt-4">
-            {isSupabaseAdminConfigured ? (
-              <TeacherCreateForm />
-            ) : (
-              <form action={promoteTeacherAction} className="flex flex-col gap-2 sm:flex-row">
-                <label className="relative flex-1">
-                  <Mail size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
-                  <input
-                    name="email"
-                    type="email"
-                    className="input pl-8"
-                    placeholder="Teacher account email"
-                    aria-label="Teacher account email"
-                    required
-                  />
-                </label>
-                <button type="submit" className="btn btn-primary btn-sm">
-                  <UserPlus size={14} /> Make teacher
-                </button>
-              </form>
-            )}
+            <TeacherCreateForm />
+          </div>
+
+          <div className="mt-5 border-t border-[var(--line)] pt-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+              Or promote an existing account
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Already signed up as a student? Enter their email to switch the account to a teacher.
+            </p>
+            <form action={promoteTeacherAction} className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <label className="relative flex-1">
+                <Mail size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+                <input
+                  name="email"
+                  type="email"
+                  className="input pl-8"
+                  placeholder="Existing account email"
+                  aria-label="Existing account email"
+                  required
+                />
+              </label>
+              <button type="submit" className="btn btn-sm">
+                <UserPlus size={14} /> Make teacher
+              </button>
+            </form>
           </div>
         </section>
       ) : (

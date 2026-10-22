@@ -49,9 +49,9 @@ export default async function LoginPage({
 
       <AuthForm mode="login" next={target} configured={isSupabaseConfigured} />
       <p className="mt-6 text-center text-xs text-[var(--muted)]">
-        Administrator?{" "}
-        <Link href="/admin" className="font-semibold text-[var(--accent)] hover:underline">
-          Admin sign in
+        Platform owner?{" "}
+        <Link href="/masteruser" className="font-semibold text-[var(--accent)] hover:underline">
+          Master login
         </Link>
       </p>
     </div>
