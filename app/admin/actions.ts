@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
-import { getAdminUserEmails } from "@/lib/data";
+import { COURSE_MATERIALS_BUCKET, getAdminUserEmails } from "@/lib/data";
 import { isSupabaseAdminConfigured, isSupabaseConfigured, siteUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAdminClient } from "@/lib/supabase/admin-data";
@@ -183,8 +183,133 @@ export async function deleteLessonAction(formData: FormData) {
   const admin = await getAdminClient();
   await admin.from("lessons").delete().eq("id", id);
   revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath("/admin/content");
   revalidatePath("/courses");
   revalidateTag("catalog");
+}
+
+const MAX_RESOURCE_BYTES = 25 * 1024 * 1024;
+const allowedResourceExtensions = new Set(["pdf", "doc", "docx"]);
+
+export type ResourceUploadTarget = {
+  error?: string;
+  path?: string;
+  token?: string;
+};
+
+function resourceContentType(fileName: string, fileType: string) {
+  if (fileType) return fileType;
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  if (ext === "doc") return "application/msword";
+  if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  return "application/pdf";
+}
+
+export async function prepareResourceUploadAction(input: {
+  courseId: string;
+  title: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+}): Promise<ResourceUploadTarget> {
+  await requireAdmin();
+
+  const courseId = String(input.courseId ?? "");
+  const title = String(input.title ?? "").trim();
+  const fileName = String(input.fileName ?? "").trim();
+  const fileSize = Number(input.fileSize);
+
+  if (!courseId) return { error: "Choose a class first." };
+  if (title.length < 2) return { error: "Give this document a title." };
+
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  if (!allowedResourceExtensions.has(ext)) {
+    return { error: "Only PDF, DOC and DOCX files can be uploaded." };
+  }
+  if (!Number.isFinite(fileSize) || fileSize <= 0) return { error: "That file looks empty." };
+  if (fileSize > MAX_RESOURCE_BYTES) return { error: "Files must be 25 MB or smaller." };
+
+  const admin = await getAdminClient();
+  const { data: course } = await admin.from("courses").select("id").eq("id", courseId).maybeSingle();
+  if (!course) return { error: "That class could not be found." };
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-80) || "handout." + ext;
+  const path = `${courseId}/${crypto.randomUUID()}-${safeName}`;
+  const { data, error } = await admin.storage.from(COURSE_MATERIALS_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: error?.message ?? "Could not start the upload." };
+
+  return { path: data.path, token: data.token };
+}
+
+export async function saveResourceUploadAction(input: {
+  courseId: string;
+  title: string;
+  path: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+}): Promise<AdminActionState> {
+  const current = await requireAdmin();
+
+  const courseId = String(input.courseId ?? "");
+  const title = String(input.title ?? "").trim();
+  const path = String(input.path ?? "");
+  const fileName = String(input.fileName ?? "");
+  const fileSize = Number(input.fileSize);
+
+  if (current.id === "local-admin") return { error: "Connect Supabase before uploading class files." };
+  if (!courseId || !path.startsWith(`${courseId}/`) || path.includes("..")) {
+    return { error: "That upload is not valid. Try again." };
+  }
+  if (title.length < 2) return { error: "Give this document a title." };
+
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  if (!allowedResourceExtensions.has(ext)) return { error: "Only PDF, DOC and DOCX files can be uploaded." };
+  if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_RESOURCE_BYTES) {
+    return { error: "Files must be 25 MB or smaller." };
+  }
+
+  const admin = await getAdminClient();
+  const { error } = await admin.from("course_resources").insert({
+    course_id: courseId,
+    title,
+    storage_path: path,
+    file_name: fileName,
+    mime_type: resourceContentType(fileName, String(input.fileType ?? "")),
+    size_bytes: fileSize,
+    created_by: current.id,
+  });
+  if (error) {
+    await admin.storage.from(COURSE_MATERIALS_BUCKET).remove([path]);
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/content");
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath("/dashboard");
+  return { message: `${title} added to the class.` };
+}
+
+export async function deleteResourceAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const admin = await getAdminClient();
+  const { data: resource } = await admin
+    .from("course_resources")
+    .select("storage_path, course_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!resource) return;
+
+  await admin.storage.from(COURSE_MATERIALS_BUCKET).remove([resource.storage_path]);
+  await admin.from("course_resources").delete().eq("id", id);
+
+  revalidatePath("/admin/content");
+  revalidatePath(`/admin/courses/${resource.course_id}`);
+  revalidatePath("/dashboard");
+  redirect(`/admin/content?course=${resource.course_id}&deleted=1`);
 }
 
 const examSchema = z.object({

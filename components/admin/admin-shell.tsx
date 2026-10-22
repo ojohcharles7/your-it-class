@@ -11,6 +11,7 @@ import {
   CloudOff,
   Command,
   ExternalLink,
+  FolderOpen,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -50,6 +51,7 @@ type AdminShellProps = {
 const workspaceNav = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
+  { href: "/admin/content", label: "Class content", icon: FolderOpen },
   { href: "/admin/students", label: "Students", icon: Users },
   { href: "/admin/teachers", label: "Teachers", icon: UserCog },
   { href: "/admin/payments", label: "Payments", icon: Wallet },

@@ -41,6 +41,17 @@ export type Lesson = {
   isFree: boolean;
 };
 
+export type CourseResource = {
+  id: string;
+  courseId: string;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storagePath: string;
+  createdAt: string;
+};
+
 export type Review = {
   id: string;
   courseId: string;

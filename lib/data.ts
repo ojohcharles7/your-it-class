@@ -9,6 +9,7 @@ import type {
   Certificate,
   Course,
   CourseDetail,
+  CourseResource,
   EnrolledCourse,
   Enrollment,
   Exam,
@@ -49,6 +50,19 @@ type LessonRow = {
   duration_min: number;
   is_free: boolean;
 };
+
+type ResourceRow = {
+  id: string;
+  course_id: string;
+  title: string;
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number | string;
+  created_at: string;
+};
+
+export const COURSE_MATERIALS_BUCKET = "course-materials";
 
 type ReviewRow = {
   id: string;
@@ -393,12 +407,61 @@ export async function getLearningCourse(userId: string, slug: string) {
     course: { ...course, lessonsCount: lessons.length },
     enrollment: mapEnrollment(enrollmentRow as EnrollmentRow),
     lessons,
+    resources: await getCourseResources(course.id),
     completedIds,
     completed,
     exam: examRow ? mapExam(examRow as ExamRow) : null,
     certificate: certificateRow ? mapCertificate(certificateRow as CertificateRow) : null,
     progress: lessons.length ? Math.round((lessons.filter((lesson) => completedIds.has(lesson.id)).length / lessons.length) * 100) : 0,
   };
+}
+
+export async function getCourseLessons(courseId: string): Promise<Lesson[]> {
+  if (!courseId) return [];
+  const supabase = await getAdminClient();
+  const { data, error } = await supabase.from("lessons").select("*").eq("course_id", courseId).order("position");
+  if (error) {
+    console.warn("Could not load lessons:", error.message);
+    return [];
+  }
+  return ((data ?? []) as LessonRow[]).map(mapLesson);
+}
+
+export type CourseResourceLink = CourseResource & { url: string | null };
+
+export async function getCourseResources(courseId: string): Promise<CourseResourceLink[]> {
+  if (!courseId) return [];
+
+  try {
+    const supabase = await getAdminClient();
+    const { data, error } = await supabase
+      .from("course_resources")
+      .select("*")
+      .eq("course_id", courseId)
+      .order("created_at", { ascending: false });
+    if (error || !data) return [];
+
+    return await Promise.all(
+      (data as ResourceRow[]).map(async (row) => {
+        const { data: signed } = await supabase.storage
+          .from(COURSE_MATERIALS_BUCKET)
+          .createSignedUrl(row.storage_path, 60 * 60);
+        return {
+          id: row.id,
+          courseId: row.course_id,
+          title: row.title,
+          fileName: row.file_name,
+          mimeType: row.mime_type,
+          sizeBytes: Number(row.size_bytes),
+          storagePath: row.storage_path,
+          createdAt: row.created_at,
+          url: signed?.signedUrl ?? null,
+        };
+      }),
+    );
+  } catch {
+    return [];
+  }
 }
 
 export async function getExamForCourse(courseId: string): Promise<{ exam: Exam; questions: ExamQuestion[] } | null> {

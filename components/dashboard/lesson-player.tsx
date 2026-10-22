@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  Download,
   FileText,
   Lock,
   PlayCircle,
@@ -16,6 +17,8 @@ import {
 } from "lucide-react";
 import { setLessonComplete } from "@/app/actions/progress";
 import type { Course, Exam, Lesson } from "@/lib/types";
+import type { CourseResourceLink } from "@/lib/data";
+import { formatBytes } from "@/lib/utils";
 
 function CompleteButton({
   lessonId,
@@ -46,6 +49,7 @@ function CompleteButton({
 export function LessonPlayer({
   course,
   lessons,
+  resources,
   completedIds,
   progress,
   exam,
@@ -53,6 +57,7 @@ export function LessonPlayer({
 }: {
   course: Course;
   lessons: Lesson[];
+  resources: CourseResourceLink[];
   completedIds: string[];
   progress: number;
   exam: Exam | null;
@@ -145,6 +150,45 @@ export function LessonPlayer({
               </div>
             </div>
           </div>
+
+          {resources.length > 0 && (
+            <div className="glass p-5">
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--accent-2)_12%,transparent)] text-[var(--accent-2)]">
+                  <FileText size={17} />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">Class handouts</p>
+                  <p className="text-[11px] text-[var(--muted)]">PDF and Word documents for this class.</p>
+                </div>
+              </div>
+              <ul className="mt-3 divide-y divide-[var(--line)]">
+                {resources.map((resource) => (
+                  <li key={resource.id} className="flex flex-wrap items-center gap-3 py-2.5">
+                    <FileText size={15} className="shrink-0 text-[var(--muted)]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium">{resource.title}</p>
+                      <p className="truncate text-[10px] text-[var(--muted)]">
+                        {resource.fileName} · {formatBytes(resource.sizeBytes)}
+                      </p>
+                    </div>
+                    {resource.url ? (
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm"
+                      >
+                        <Download size={13} /> Download
+                      </a>
+                    ) : (
+                      <span className="badge badge-muted">Unavailable</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="glass p-4">

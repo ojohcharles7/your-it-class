@@ -31,6 +31,13 @@ export function formatDate(value: string | Date | null | undefined) {
   }).format(new Date(value));
 }
 
+export function formatBytes(bytes: number) {
+  if (!bytes || !Number.isFinite(bytes)) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function timeAgo(value: string | Date) {
   const date = value instanceof Date ? value : new Date(value);
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
