@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { ArrowLeft, KeyRound, ShieldCheck } from "lucide-react";
 import { MasterLoginForm } from "@/components/auth/master-login-form";
 import { getCurrentUser } from "@/lib/auth";
 import { isSupabaseConfigured, masterAdminEmail } from "@/lib/env";
@@ -23,6 +23,12 @@ export default async function MasterUserPage() {
 
   return (
     <div>
+      <Link
+        href="/"
+        className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--ink)]"
+      >
+        <ArrowLeft size={14} /> Back to website
+      </Link>
       <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--accent)]">
         <ShieldCheck size={13} /> Master access
       </div>

@@ -19,6 +19,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
 
   const isPrivate =
     pathname.startsWith("/admin") ||
+    pathname.startsWith("/master") ||
     pathname.startsWith("/teacher") ||
     pathname.startsWith("/dashboard");
 

@@ -437,7 +437,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1480px] scroll-mt-24 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
 
         <footer className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-2 px-4 pb-6 text-[11px] text-[var(--muted)] sm:px-6 lg:px-8">
           <span>Your IT Class · {consoleLabel} control center</span>
