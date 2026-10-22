@@ -33,3 +33,5 @@ dev-server.log
 # supabase
 supabase/.temp
 node_modules
+
+.vercel
