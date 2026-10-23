@@ -9,13 +9,11 @@ import {
   Search,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Star,
   TrendingUp,
 } from "lucide-react";
 import { CourseCard } from "@/components/course-card";
 import { HeroCarousel } from "@/components/home/hero-carousel";
-import { LearningPrompt } from "@/components/home/learning-prompt";
 import { getCourses } from "@/lib/data";
 import { fixtureReviews } from "@/lib/fixtures";
 import { siteUrl } from "@/lib/env";
@@ -121,16 +119,6 @@ export default async function HomePage() {
       <section className="hero-glow relative overflow-hidden pb-14 pt-10 sm:pt-16">
         <div className="wrap-wide">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="reveal flex justify-center">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1.5 text-[11px] font-semibold text-[var(--accent)] backdrop-blur-xl sm:text-xs">
-                <Sparkles size={14} />
-                Your IT Class · Career pathfinder
-                <span className="rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider">
-                  New
-                </span>
-              </span>
-            </div>
-
             <h1 className="reveal delay-1 mt-6 text-[2.7rem] font-bold leading-[0.98] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
               Describe your goal.
               <br />
@@ -140,14 +128,6 @@ export default async function HomePage() {
             <p className="reveal delay-1 mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
               Tell us where you want to be. Your IT Class turns it into a practical learning plan — video lessons,
               hands-on projects, timed exams and a verifiable certificate. Start free, no card required.
-            </p>
-
-            <div className="reveal delay-2 mt-8">
-              <LearningPrompt />
-            </div>
-
-            <p className="reveal delay-2 mt-4 text-[11px] text-[var(--muted)] sm:text-xs">
-              Free preview lesson in every course · Learn at your own pace
             </p>
           </div>
 
