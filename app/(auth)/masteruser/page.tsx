@@ -17,7 +17,7 @@ export default async function MasterUserPage() {
   if (current) {
     if (current.profile.role === "super_admin") redirect("/master");
     if (current.profile.role === "admin") redirect("/admin");
-    if (current.profile.role === "teacher") redirect("/teacher");
+    if (current.profile.role === "teacher") redirect("/instructor");
     redirect("/dashboard");
   }
 
@@ -34,8 +34,8 @@ export default async function MasterUserPage() {
       </div>
       <h1 className="mt-3 text-3xl font-bold tracking-tight">Master sign in</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
-        This entrance is reserved for the platform owner. Sign in to manage teachers, roles and every account from the
-        admin console.
+        This entrance is reserved for the platform owner. Sign in to manage instructor applications, course approvals, payouts and every account from the
+        master console.
       </p>
 
       <div className="mt-4 flex items-start gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-3 text-xs leading-relaxed text-[var(--muted)]">

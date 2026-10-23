@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, GraduationCap, Users, Wallet } from "lucide-react";
+import { ArrowRight, BookOpen, Clapperboard, GraduationCap, Plus, TrendingUp, Users, Wallet } from "lucide-react";
+import { InteractiveBarChart } from "@/components/charts/interactive-bar-chart";
+import { InteractiveDonut } from "@/components/charts/interactive-donut";
 import { requireTeacher } from "@/lib/auth";
 import { getTeacherCourses } from "@/lib/data";
 import { naira, percent } from "@/lib/utils";
@@ -13,16 +15,22 @@ export default async function TeacherOverviewPage() {
   const paidStudents = classes.reduce((sum, course) => sum + course.paidStudents, 0);
   const revenue = classes.reduce((sum, course) => sum + course.revenueKobo, 0);
   const completed = classes.reduce((sum, course) => sum + course.completedStudents, 0);
+  const completionRate = percent(completed, paidStudents);
   const firstName = (current.profile.fullName || "Teacher").split(/\s+/)[0];
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Teaching desk</p>
-        <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Welcome, {firstName}.</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          These are the classes assigned to you and the learners who paid for them.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Teaching desk</p>
+          <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Welcome, {firstName}.</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            These are the classes assigned to you and the learners who paid for them.
+          </p>
+        </div>
+        <Link href="/teacher/studio/new" className="btn btn-primary btn-sm self-start sm:self-auto">
+          <Plus size={14} /> Add a class
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -43,24 +51,83 @@ export default async function TeacherOverviewPage() {
         ))}
       </div>
 
+      {classes.length > 0 && (
+        <div className="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
+          <section className="admin-card p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <TrendingUp size={17} className="text-[var(--accent)]" /> Class performance
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">Paid learners and completions per class</p>
+              </div>
+              <span className="rounded-md bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-2 py-1 text-[10px] font-bold text-[var(--accent)]">
+                {paidStudents} paid learner{paidStudents === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="mt-5">
+              <InteractiveBarChart
+                labels={classes.map((course) => course.title)}
+                series={[
+                  { name: "Paid learners", color: "var(--accent)", values: classes.map((course) => course.paidStudents) },
+                  { name: "Completed", color: "var(--success)", values: classes.map((course) => course.completedStudents) },
+                ]}
+                height={200}
+              />
+            </div>
+          </section>
+
+          <section className="admin-card p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <GraduationCap size={17} className="text-[var(--success)]" /> Completion
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">Across your paid learners</p>
+              </div>
+            </div>
+            <div className="mt-5">
+              <InteractiveDonut
+                segments={[
+                  { label: "Completed", value: completed, color: "var(--success)" },
+                  { label: "In progress", value: Math.max(0, paidStudents - completed), color: "var(--accent)" },
+                ]}
+                centerValue={`${completionRate}%`}
+                centerLabel="Completion"
+              />
+            </div>
+            <p className="mt-4 border-t border-[var(--line)] pt-3 text-[10px] leading-relaxed text-[var(--muted)]">
+              Hover or tap a slice to inspect how your learners are progressing.
+            </p>
+          </section>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold">My classes</h2>
           <p className="mt-0.5 text-xs text-[var(--muted)]">Open a class to see the students who applied for it.</p>
         </div>
-        <Link href="/teacher/students" className="btn btn-sm">
-          All students <ArrowRight size={13} />
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/teacher/studio" className="btn btn-sm">
+            <Clapperboard size={13} /> Course studio
+          </Link>
+          <Link href="/teacher/students" className="btn btn-sm">
+            All students <ArrowRight size={13} />
+          </Link>
+        </div>
       </div>
 
       {classes.length === 0 ? (
         <div className="admin-card px-6 py-14 text-center">
           <BookOpen size={24} className="mx-auto text-[var(--muted)]" />
-          <h2 className="mt-3 text-sm font-semibold">No classes assigned yet</h2>
+          <h2 className="mt-3 text-sm font-semibold">No classes yet</h2>
           <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--muted)]">
-            Your admin has not assigned a subject to you yet. Once they do, your classes and the students who paid for
-            them will appear here.
+            Create a class in your course studio, or wait for an admin to assign one to you.
           </p>
+          <Link href="/teacher/studio/new" className="btn btn-primary btn-sm mt-4">
+            <Plus size={14} /> Create a class
+          </Link>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -72,7 +72,7 @@ export async function loginAction(_state: AuthState, formData: FormData): Promis
     if (user) {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
       revalidatePath("/", "layout");
-      if (profile?.role === "teacher") redirect("/teacher");
+      if (profile?.role === "teacher") redirect("/instructor");
       if (profile?.role === "super_admin") redirect("/master");
       if (profile?.role === "admin") redirect("/admin");
     }

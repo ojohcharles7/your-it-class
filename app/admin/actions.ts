@@ -4,7 +4,8 @@ import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
-import { COURSE_MATERIALS_BUCKET, getAdminUserEmails } from "@/lib/data";
+import { courseInputSchema, slugify, youtubeId } from "@/lib/course-input";
+import { COURSE_MATERIALS_BUCKET, COURSE_VIDEOS_BUCKET, getAdminUserEmails } from "@/lib/data";
 import { isSupabaseAdminConfigured, isSupabaseConfigured, siteUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAdminClient } from "@/lib/supabase/admin-data";
@@ -12,37 +13,16 @@ import { createSupabasePublicClient } from "@/lib/supabase/public";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { adminRoleOptions } from "@/lib/roles";
 import type { AdminActionState, Role } from "@/lib/types";
+import {
+  MAX_RESOURCE_BYTES,
+  MAX_VIDEO_BYTES,
+  allowedResourceExtensions,
+  allowedVideoExtensions,
+  allowedVideoTypes,
+  resourceContentType,
+} from "@/lib/uploads";
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function youtubeId(value: string) {
-  const trimmed = value.trim();
-  const match = trimmed.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
-  return match ? match[1] : trimmed;
-}
-
-const courseSchema = z.object({
-  id: z.string().optional(),
-  title: z.string().trim().min(3, "Course title is required."),
-  slug: z.string().trim().min(3, "Slug is required."),
-  description: z.string().trim().min(10, "Add a short description."),
-  category: z.string().trim().min(2, "Category is required."),
-  level: z.string().trim().min(2),
-  priceNaira: z.coerce.number().min(0, "Price cannot be negative."),
-  hours: z.coerce.number().min(0),
-  rating: z.coerce.number().min(0).max(5),
-  emoji: z.string().trim().min(1, "Add an emoji."),
-  gradientStart: z.string().trim().min(4),
-  gradientEnd: z.string().trim().min(4),
-  outcomes: z.string().optional(),
-  published: z.string().optional(),
-});
+const courseSchema = courseInputSchema;
 
 export async function saveCourseAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   await requireAdmin();
@@ -135,7 +115,7 @@ const lessonSchema = z.object({
   courseId: z.string().min(1),
   position: z.coerce.number().int().min(1),
   title: z.string().trim().min(3, "Lesson title is required."),
-  youtubeId: z.string().trim().min(3, "Add a YouTube video ID or URL."),
+  youtubeId: z.string().trim().optional(),
   durationMin: z.coerce.number().int().min(1, "Duration must be at least 1 minute."),
   isFree: z.string().optional(),
 });
@@ -153,14 +133,17 @@ export async function saveLessonAction(_state: AdminActionState, formData: FormD
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the lesson." };
 
+  const keepVideo = formData.get("keepVideo") === "on";
+  if (!keepVideo && !parsed.data.youtubeId) return { error: "Add a YouTube video ID or URL." };
+
   const admin = await getAdminClient();
   const values = {
     course_id: parsed.data.courseId,
     position: parsed.data.position,
     title: parsed.data.title,
-    youtube_id: youtubeId(parsed.data.youtubeId),
     duration_min: parsed.data.durationMin,
     is_free: parsed.data.isFree === "on",
+    ...(keepVideo ? {} : { youtube_id: youtubeId(parsed.data.youtubeId ?? "") }),
   };
 
   const { error } = parsed.data.id
@@ -188,22 +171,170 @@ export async function deleteLessonAction(formData: FormData) {
   revalidateTag("catalog");
 }
 
-const MAX_RESOURCE_BYTES = 25 * 1024 * 1024;
-const allowedResourceExtensions = new Set(["pdf", "doc", "docx"]);
+const adminLessonInputSchema = z.object({
+  id: z.string().optional(),
+  courseId: z.string().min(1),
+  position: z.coerce.number().int().min(1),
+  title: z.string().trim().min(3, "Lesson title is required."),
+  youtubeId: z.string().trim().optional(),
+  durationMin: z.coerce.number().int().min(1, "Duration must be at least 1 minute."),
+  isFree: z.boolean().optional(),
+  videoPath: z.string().trim().optional(),
+  videoMime: z.string().trim().optional(),
+  videoSize: z.coerce.number().optional(),
+  keepVideo: z.boolean().optional(),
+});
+
+export type AdminLessonInput = z.input<typeof adminLessonInputSchema>;
+
+function revalidateAdminContent(courseId: string, slug?: string) {
+  revalidatePath("/admin/content");
+  revalidatePath("/admin/courses");
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath("/courses");
+  revalidatePath("/dashboard");
+  revalidateTag("catalog");
+  if (slug) revalidatePath(`/courses/${slug}`);
+}
+
+export async function saveAdminLessonAction(input: AdminLessonInput): Promise<AdminActionState> {
+  await requireAdmin();
+  const parsed = adminLessonInputSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the lesson." };
+
+  const data = parsed.data;
+  const admin = await getAdminClient();
+  const { data: course } = await admin
+    .from("courses")
+    .select("id, slug")
+    .eq("id", data.courseId)
+    .maybeSingle();
+  if (!course) return { error: "That class could not be found." };
+
+  const videoPath = data.videoPath?.trim() || "";
+  const youtube = data.youtubeId?.trim() || "";
+
+  let videoValues: {
+    youtube_id?: string;
+    video_path?: string | null;
+    video_mime?: string | null;
+    video_size?: number | null;
+  };
+
+  if (videoPath) {
+    if (!videoPath.startsWith(`${data.courseId}/`) || videoPath.includes("..")) {
+      return { error: "That video upload is not valid. Try again." };
+    }
+    if (!Number.isFinite(data.videoSize ?? 0) || (data.videoSize ?? 0) <= 0 || (data.videoSize ?? 0) > MAX_VIDEO_BYTES) {
+      return { error: "Videos must be 500 MB or smaller." };
+    }
+    if (data.videoMime && !allowedVideoTypes.has(data.videoMime)) {
+      return { error: "Upload an MP4, WebM, OGG, MOV or M4V video." };
+    }
+    videoValues = {
+      youtube_id: "",
+      video_path: videoPath,
+      video_mime: data.videoMime || "video/mp4",
+      video_size: data.videoSize ?? null,
+    };
+  } else if (youtube) {
+    videoValues = { youtube_id: youtubeId(youtube), video_path: null, video_mime: null, video_size: null };
+  } else if (data.keepVideo) {
+    videoValues = {};
+  } else {
+    return { error: "Upload a video file or add a YouTube video ID." };
+  }
+
+  const values = {
+    course_id: data.courseId,
+    position: data.position,
+    title: data.title,
+    duration_min: data.durationMin,
+    is_free: data.isFree ?? false,
+    ...videoValues,
+  };
+
+  if (data.id) {
+    const { data: existing } = await admin
+      .from("lessons")
+      .select("id, video_path")
+      .eq("id", data.id)
+      .eq("course_id", data.courseId)
+      .maybeSingle();
+    if (!existing) return { error: "That lesson could not be found." };
+
+    const { error } = await admin.from("lessons").update(values).eq("id", data.id);
+    if (error) return { error: error.message };
+
+    const oldPath = (existing as { video_path?: string | null }).video_path;
+    if (oldPath && oldPath !== videoPath && !data.keepVideo) {
+      await admin.storage.from(COURSE_VIDEOS_BUCKET).remove([oldPath]);
+    }
+  } else {
+    const { error } = await admin.from("lessons").insert(values);
+    if (error) return { error: error.message };
+  }
+
+  revalidateAdminContent(data.courseId, (course as { slug: string }).slug);
+  return { message: data.id ? "Lesson updated." : "Lesson added." };
+}
+
+export async function deleteAdminLessonAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!id || !courseId) return;
+
+  const admin = await getAdminClient();
+  const { data: lesson } = await admin
+    .from("lessons")
+    .select("video_path")
+    .eq("id", id)
+    .eq("course_id", courseId)
+    .maybeSingle();
+
+  await admin.from("lessons").delete().eq("id", id).eq("course_id", courseId);
+  const videoPath = (lesson as { video_path?: string | null } | null)?.video_path;
+  if (videoPath) await admin.storage.from(COURSE_VIDEOS_BUCKET).remove([videoPath]);
+
+  revalidateAdminContent(courseId);
+  redirect(`/admin/content?course=${courseId}&lessonDeleted=1`);
+}
+
+export async function prepareAdminVideoUploadAction(input: {
+  courseId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+}): Promise<{ error?: string; path?: string; token?: string }> {
+  await requireAdmin();
+  const courseId = String(input.courseId ?? "");
+  const fileName = String(input.fileName ?? "").trim();
+  const fileType = String(input.fileType ?? "");
+  const fileSize = Number(input.fileSize);
+
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  if (!allowedVideoExtensions.has(ext)) return { error: "Upload an MP4, WebM, OGG, MOV or M4V video." };
+  if (fileType && !allowedVideoTypes.has(fileType)) return { error: "Upload an MP4, WebM, OGG, MOV or M4V video." };
+  if (!Number.isFinite(fileSize) || fileSize <= 0) return { error: "That video file looks empty." };
+  if (fileSize > MAX_VIDEO_BYTES) return { error: "Videos must be 500 MB or smaller." };
+
+  const admin = await getAdminClient();
+  const { data: course } = await admin.from("courses").select("id").eq("id", courseId).maybeSingle();
+  if (!course) return { error: "That class could not be found." };
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-80) || `lesson.${ext}`;
+  const path = `${courseId}/${crypto.randomUUID()}-${safeName}`;
+  const { data, error } = await admin.storage.from(COURSE_VIDEOS_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: error?.message ?? "Could not start the upload." };
+  return { path: data.path, token: data.token };
+}
 
 export type ResourceUploadTarget = {
   error?: string;
   path?: string;
   token?: string;
 };
-
-function resourceContentType(fileName: string, fileType: string) {
-  if (fileType) return fileType;
-  const ext = fileName.split(".").pop()?.toLowerCase();
-  if (ext === "doc") return "application/msword";
-  if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  return "application/pdf";
-}
 
 export async function prepareResourceUploadAction(input: {
   courseId: string;
@@ -224,10 +355,10 @@ export async function prepareResourceUploadAction(input: {
 
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
   if (!allowedResourceExtensions.has(ext)) {
-    return { error: "Only PDF, DOC and DOCX files can be uploaded." };
+    return { error: "Only PDF, DOC, DOCX and EPUB files can be uploaded." };
   }
   if (!Number.isFinite(fileSize) || fileSize <= 0) return { error: "That file looks empty." };
-  if (fileSize > MAX_RESOURCE_BYTES) return { error: "Files must be 25 MB or smaller." };
+  if (fileSize > MAX_RESOURCE_BYTES) return { error: "Files must be 50 MB or smaller." };
 
   const admin = await getAdminClient();
   const { data: course } = await admin.from("courses").select("id").eq("id", courseId).maybeSingle();
@@ -264,9 +395,9 @@ export async function saveResourceUploadAction(input: {
   if (title.length < 2) return { error: "Give this document a title." };
 
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  if (!allowedResourceExtensions.has(ext)) return { error: "Only PDF, DOC and DOCX files can be uploaded." };
+  if (!allowedResourceExtensions.has(ext)) return { error: "Only PDF, DOC, DOCX and EPUB files can be uploaded." };
   if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_RESOURCE_BYTES) {
-    return { error: "Files must be 25 MB or smaller." };
+    return { error: "Files must be 50 MB or smaller." };
   }
 
   const admin = await getAdminClient();
@@ -422,9 +553,13 @@ export async function setRoleAction(formData: FormData) {
   await supabase.from("profiles").update({ role }).eq("id", userId);
   if (role !== "teacher") {
     await supabase.from("course_teachers").delete().eq("teacher_id", userId);
+    await supabase.from("instructor_profiles").update({ is_public: false }).eq("user_id", userId);
   }
   revalidatePath("/admin/students");
   revalidatePath("/admin/teachers");
+  revalidatePath("/master/users");
+  revalidatePath("/master/instructors");
+  revalidatePath("/instructors");
 }
 
 const teacherSchema = z.object({
@@ -479,7 +614,7 @@ export async function createTeacherAction(_state: AdminActionState, formData: Fo
     password: parsed.data.password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/teacher")}`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/instructor")}`,
     },
   });
   if (error) return { error: error.message };
@@ -501,7 +636,7 @@ export async function createTeacherAction(_state: AdminActionState, formData: Fo
   return {
     message: data.session
       ? `${email} can now log in and teach. Assign their classes below.`
-      : `Teacher account created. Ask ${email} to confirm the email, then log in at /teacher.`,
+      : `Instructor account created. Ask ${email} to confirm the email, then log in at /instructor.`,
   };
 }
 
@@ -523,23 +658,22 @@ export async function promoteTeacherAction(formData: FormData) {
 }
 
 export async function assignTeacherCoursesAction(formData: FormData) {
-  await requireSuperAdmin();
+  await requireAdmin();
   const teacherId = String(formData.get("teacherId") ?? "");
   if (!teacherId) return;
 
   const courseIds = Array.from(new Set(formData.getAll("courseIds").map(String).filter(Boolean)));
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) return;
+  const admin = await getAdminClient();
 
-  await supabase.from("course_teachers").delete().eq("teacher_id", teacherId);
+  await admin.from("course_teachers").delete().eq("teacher_id", teacherId);
   if (courseIds.length) {
-    await supabase
+    await admin
       .from("course_teachers")
       .insert(courseIds.map((courseId) => ({ course_id: courseId, teacher_id: teacherId })));
   }
   revalidatePath("/admin/teachers");
   revalidatePath("/admin/students");
-  revalidatePath("/teacher");
+  revalidatePath("/instructor");
 }
 
 export async function removeTeacherAction(formData: FormData) {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IntentLink } from "@/components/ui/intent-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -12,6 +13,7 @@ import {
   ExternalLink,
   FileText,
   GraduationCap,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -29,15 +31,16 @@ import { initials } from "@/lib/utils";
 type ShellUser = { name: string; email: string; role: Role };
 
 const learningNav = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/courses", label: "My courses", icon: BookOpen },
   { href: "/dashboard/exams", label: "Exams", icon: FileText },
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   { href: "/dashboard/certificates", label: "Certificates", icon: Award },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard/settings", label: "Profile & settings", icon: Settings },
 ];
 
 const exploreNav = [
+  { href: "/", label: "Home", icon: Home },
   { href: "/courses", label: "Browse courses", icon: Compass },
   { href: "/verify", label: "Verify a certificate", icon: ShieldCheck },
 ];
@@ -47,9 +50,9 @@ function isActive(pathname: string, href: string) {
 }
 
 function sectionFor(pathname: string) {
-  if (pathname === "/dashboard") return "Overview";
+  if (pathname === "/dashboard") return "Dashboard";
   const match = learningNav.find((item) => item.href !== "/dashboard" && pathname.startsWith(item.href));
-  return match?.label ?? "Overview";
+  return match?.label ?? "Dashboard";
 }
 
 export function DashboardShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
@@ -99,33 +102,38 @@ export function DashboardShell({ user, children }: { user: ShellUser; children: 
         <p className="px-2.5 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Learning</p>
         <nav className="space-y-1">
           {learningNav.map((item) => (
-            <Link key={item.href} href={item.href} className="admin-nav-link" data-active={isActive(pathname, item.href)}>
+            <IntentLink key={item.href} href={item.href} className="admin-nav-link" data-active={isActive(pathname, item.href)}>
               <item.icon size={17} />
               <span className="flex-1">{item.label}</span>
-            </Link>
+            </IntentLink>
           ))}
         </nav>
 
         <p className="px-2.5 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Explore</p>
         <nav className="space-y-1">
           {exploreNav.map((item) => (
-            <Link key={item.href} href={item.href} className="admin-nav-link" data-active={isActive(pathname, item.href)}>
+            <IntentLink key={item.href} href={item.href} className="admin-nav-link" data-active={isActive(pathname, item.href)}>
               <item.icon size={17} />
               {item.label}
-            </Link>
+            </IntentLink>
           ))}
           {isTeacherRole(user.role) && (
-            <Link href="/teacher" className="admin-nav-link" data-active={pathname.startsWith("/teacher")}>
+            <IntentLink href="/instructor" className="admin-nav-link" data-active={pathname.startsWith("/instructor")}>
               <Presentation size={17} />
-              Teaching desk
-            </Link>
+              Instructor studio
+            </IntentLink>
           )}
-          {isAdminRole(user.role) && (
-            <Link href="/admin" className="admin-nav-link" data-active={pathname.startsWith("/admin")}>
+          {user.role === "super_admin" ? (
+            <IntentLink href="/master" className="admin-nav-link" data-active={pathname.startsWith("/master")}>
+              <ShieldCheck size={17} />
+              Master console
+            </IntentLink>
+          ) : isAdminRole(user.role) ? (
+            <IntentLink href="/admin" className="admin-nav-link" data-active={pathname.startsWith("/admin")}>
               <ShieldCheck size={17} />
               Admin panel
-            </Link>
-          )}
+            </IntentLink>
+          ) : null}
         </nav>
       </div>
 
@@ -205,6 +213,15 @@ export function DashboardShell({ user, children }: { user: ShellUser; children: 
             <span className="ml-1 text-sm font-semibold sm:hidden">{section}</span>
 
             <div className="ml-auto flex items-center gap-1.5">
+              <Link
+                href="/"
+                title="Home"
+                aria-label="Home"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--line)] bg-[var(--surface-solid)] text-[var(--muted)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              >
+                <Home size={16} />
+              </Link>
+
               <Link
                 href="/courses"
                 className="hidden items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-solid)] px-3 py-2 text-xs font-semibold text-[var(--muted)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)] md:flex"

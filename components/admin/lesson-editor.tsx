@@ -32,6 +32,7 @@ function LessonForm({
     <form action={action} className="space-y-3">
       <input type="hidden" name="courseId" value={courseId} />
       {lesson && <input type="hidden" name="id" value={lesson.id} />}
+      {lesson?.hasVideo && <input type="hidden" name="keepVideo" value="on" />}
       <div className="grid gap-3 sm:grid-cols-[80px_1fr]">
         <div>
           <label className="label">Position</label>
@@ -51,14 +52,25 @@ function LessonForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
         <div>
-          <label className="label">YouTube video ID or URL</label>
-          <input
-            name="youtubeId"
-            className="input font-mono text-xs"
-            defaultValue={lesson?.youtubeId}
-            placeholder="dQw4w9WgXcQ or https://youtu.be/…"
-            required
-          />
+          {lesson?.hasVideo ? (
+            <>
+              <span className="label">Uploaded video</span>
+              <p className="rounded-xl border border-[var(--line)] bg-[color-mix(in_srgb,var(--success)_6%,transparent)] p-3 text-xs text-[var(--muted)]">
+                This lesson uses an uploaded video. Manage or replace it from the teacher&apos;s Course studio.
+              </p>
+            </>
+          ) : (
+            <>
+              <label className="label">YouTube video ID or URL</label>
+              <input
+                name="youtubeId"
+                className="input font-mono text-xs"
+                defaultValue={lesson?.youtubeId}
+                placeholder="dQw4w9WgXcQ or https://youtu.be/…"
+                required
+              />
+            </>
+          )}
         </div>
         <div>
           <label className="label">Duration (min)</label>

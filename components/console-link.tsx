@@ -2,7 +2,7 @@
 
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 
 export function consoleHref(href: string, pathname: string) {
   if (!pathname.startsWith("/master")) return href;
@@ -13,7 +13,34 @@ export function consoleHref(href: string, pathname: string) {
   return href;
 }
 
-export function Link({ href, ...props }: ComponentProps<typeof NextLink>) {
+export function Link({
+  href,
+  prefetch,
+  onMouseEnter,
+  onFocus,
+  onTouchStart,
+  ...props
+}: ComponentProps<typeof NextLink>) {
   const pathname = usePathname() ?? "";
-  return <NextLink href={typeof href === "string" ? consoleHref(href, pathname) : href} {...props} />;
+  const [intent, setIntent] = useState(false);
+
+  return (
+    <NextLink
+      href={typeof href === "string" ? consoleHref(href, pathname) : href}
+      {...props}
+      prefetch={prefetch ?? intent}
+      onMouseEnter={(event) => {
+        setIntent(true);
+        onMouseEnter?.(event);
+      }}
+      onFocus={(event) => {
+        setIntent(true);
+        onFocus?.(event);
+      }}
+      onTouchStart={(event) => {
+        setIntent(true);
+        onTouchStart?.(event);
+      }}
+    />
+  );
 }

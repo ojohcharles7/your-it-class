@@ -86,35 +86,51 @@ export function CourseExplorer({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {["All", ...categories].map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="chip"
-              data-active={category === item}
-              onClick={() => setCategory(item)}
-            >
-              {item}
-            </button>
-          ))}
-          <span className="mx-1 hidden h-5 w-px bg-[var(--line)] sm:block" />
-          {levels.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="chip"
-              data-active={level === item}
-              onClick={() => setLevel(item)}
-            >
-              {item}
-            </button>
-          ))}
-          {hasFilters && (
-            <button type="button" className="btn btn-ghost btn-sm ml-auto" onClick={reset}>
-              <X size={14} /> Clear
-            </button>
-          )}
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)] sm:w-16">
+              Category
+            </span>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+              {["All", ...categories].map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="chip"
+                  data-active={category === item}
+                  aria-pressed={category === item}
+                  onClick={() => setCategory(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)] sm:w-16">
+              Level
+            </span>
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by level">
+              {levels.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="chip"
+                  data-active={level === item}
+                  aria-pressed={level === item}
+                  onClick={() => setLevel(item)}
+                >
+                  {item}
+                </button>
+              ))}
+              {hasFilters && (
+                <button type="button" className="btn btn-ghost btn-sm ml-auto" onClick={reset}>
+                  <X size={14} /> Clear
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

@@ -15,9 +15,13 @@ import type {
   Exam,
   ExamAttempt,
   ExamQuestion,
+  InstructorApplication,
+  InstructorEarning,
+  InstructorProfile,
   Lesson,
   LessonProgress,
   Payment,
+  PayoutRequest,
   Review,
 } from "./types";
 
@@ -37,6 +41,11 @@ type CourseRow = {
   gradient: string;
   outcomes: string[] | null;
   published: boolean;
+  instructor_id?: string | null;
+  review_status?: string | null;
+  review_note?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
   lessons?: Count;
   enrollments?: Count;
 };
@@ -47,6 +56,9 @@ type LessonRow = {
   position: number;
   title: string;
   youtube_id: string;
+  video_path?: string | null;
+  video_mime?: string | null;
+  video_size?: number | string | null;
   duration_min: number;
   is_free: boolean;
 };
@@ -63,6 +75,7 @@ type ResourceRow = {
 };
 
 export const COURSE_MATERIALS_BUCKET = "course-materials";
+export const COURSE_VIDEOS_BUCKET = "course-videos";
 
 type ReviewRow = {
   id: string;
@@ -154,6 +167,11 @@ function mapCourse(row: CourseRow): Course {
     gradient: row.gradient,
     outcomes: row.outcomes ?? [],
     published: row.published,
+    instructorId: row.instructor_id ?? null,
+    reviewStatus: (row.review_status as Course["reviewStatus"]) ?? (row.published ? "published" : "draft"),
+    reviewNote: row.review_note ?? "",
+    submittedAt: row.submitted_at ?? null,
+    reviewedAt: row.reviewed_at ?? null,
     lessonsCount: countOf(row.lessons),
     studentsCount: countOf(row.enrollments),
   };
@@ -166,6 +184,10 @@ function mapLesson(row: LessonRow): Lesson {
     position: row.position,
     title: row.title,
     youtubeId: row.youtube_id,
+    videoPath: row.video_path ?? null,
+    videoMime: row.video_mime ?? null,
+    videoSize: row.video_size == null ? null : Number(row.video_size),
+    hasVideo: Boolean(row.video_path),
     durationMin: row.duration_min,
     isFree: row.is_free,
   };
@@ -538,6 +560,38 @@ export async function getExamForCourse(courseId: string): Promise<{ exam: Exam; 
   };
 }
 
+export async function getExamEditorData(courseId: string): Promise<{
+  exam: Exam | null;
+  questions: { id: string; examId: string; prompt: string; options: string[]; correctIndex: number; position: number }[];
+}> {
+  const admin = await getAdminClient();
+  const { data: examRow } = await admin
+    .from("exams")
+    .select("*, exam_questions(count)")
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (!examRow) return { exam: null, questions: [] };
+
+  const exam = mapExam(examRow as ExamRow);
+  const { data: questionRows } = await admin
+    .from("exam_questions")
+    .select("id, exam_id, prompt, options, correct_index, position")
+    .eq("exam_id", exam.id)
+    .order("position");
+
+  return {
+    exam,
+    questions: ((questionRows ?? []) as ExamQuestionRow[]).map((row) => ({
+      id: row.id,
+      examId: row.exam_id,
+      prompt: row.prompt,
+      options: row.options,
+      correctIndex: row.correct_index,
+      position: row.position,
+    })),
+  };
+}
+
 export async function getExamWithCourse(examId: string) {
   if (!isSupabaseAdminConfigured) return null;
   const supabase = createSupabaseAdminClient();
@@ -686,12 +740,14 @@ export async function isEnrolled(userId: string, courseId: string) {
 }
 
 // =========================================================
-// Teaching workspace
+// Instructor / teaching workspace
 // =========================================================
 export type TeacherClass = Course & {
   paidStudents: number;
   completedStudents: number;
   revenueKobo: number;
+  earningsKobo: number;
+  isOwner: boolean;
 };
 
 export type TeacherStudent = {
@@ -722,39 +778,210 @@ type TeacherStudentRow = {
 
 type AssignmentRow = { course_id: string; teacher_id: string };
 
+type InstructorProfileRow = {
+  user_id: string;
+  slug: string;
+  headline: string | null;
+  bio: string | null;
+  phone: string | null;
+  website: string | null;
+  avatar_url: string | null;
+  expertise: string[] | null;
+  is_public: boolean;
+  revenue_share_percent: number;
+  bank_name: string | null;
+  account_name: string | null;
+  account_number: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type InstructorApplicationRow = {
+  id: string;
+  user_id: string | null;
+  full_name: string;
+  email: string;
+  phone: string;
+  course_topic: string;
+  experience: string;
+  additional_info: string;
+  status: "pending" | "approved" | "rejected";
+  review_note: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
+type InstructorEarningRow = {
+  id: string;
+  payment_id: string;
+  instructor_id: string;
+  course_id: string;
+  gross_kobo: number;
+  share_percent: number;
+  amount_kobo: number;
+  created_at: string;
+  courses?: { title: string } | { title: string }[] | null;
+};
+
+type PayoutRequestRow = {
+  id: string;
+  instructor_id: string;
+  amount_kobo: number;
+  status: PayoutRequest["status"];
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  note: string;
+  review_note: string;
+  reference: string;
+  created_at: string;
+  reviewed_at: string | null;
+  paid_at: string | null;
+  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+function joinedTitle(value: { title: string } | { title: string }[] | null | undefined) {
+  if (!value) return undefined;
+  return Array.isArray(value) ? value[0]?.title : value.title;
+}
+
+function joinedName(value: { full_name: string | null } | { full_name: string | null }[] | null | undefined) {
+  if (!value) return undefined;
+  const row = Array.isArray(value) ? value[0] : value;
+  return row?.full_name ?? undefined;
+}
+
+export function mapInstructorProfile(row: InstructorProfileRow): InstructorProfile {
+  return {
+    userId: row.user_id,
+    slug: row.slug,
+    headline: row.headline ?? "",
+    bio: row.bio ?? "",
+    phone: row.phone ?? "",
+    website: row.website ?? "",
+    avatarUrl: row.avatar_url ?? null,
+    expertise: row.expertise ?? [],
+    isPublic: row.is_public,
+    revenueSharePercent: Number(row.revenue_share_percent),
+    bankName: row.bank_name ?? "",
+    accountName: row.account_name ?? "",
+    accountNumber: row.account_number ?? "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapInstructorApplication(row: InstructorApplicationRow): InstructorApplication {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    fullName: row.full_name,
+    email: row.email,
+    phone: row.phone,
+    courseTopic: row.course_topic,
+    experience: row.experience,
+    additionalInfo: row.additional_info,
+    status: row.status,
+    reviewNote: row.review_note,
+    reviewedBy: row.reviewed_by,
+    reviewedAt: row.reviewed_at,
+    createdAt: row.created_at,
+  };
+}
+
+function mapPayout(row: PayoutRequestRow): PayoutRequest {
+  return {
+    id: row.id,
+    instructorId: row.instructor_id,
+    instructorName: joinedName(row.profiles),
+    amountKobo: Number(row.amount_kobo),
+    status: row.status,
+    bankName: row.bank_name,
+    accountName: row.account_name,
+    accountNumber: row.account_number,
+    note: row.note,
+    reviewNote: row.review_note,
+    reference: row.reference,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at,
+    paidAt: row.paid_at,
+  };
+}
+
 export async function getTeacherCourses(teacherId: string): Promise<TeacherClass[]> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return [];
 
-  const { data: assignmentRows, error: assignmentError } = await supabase
-    .from("course_teachers")
-    .select("course_id, teacher_id")
-    .eq("teacher_id", teacherId);
-  if (assignmentError || !assignmentRows?.length) return [];
+  const [{ data: assignmentRows }, { data: ownedRows }] = await Promise.all([
+    supabase.from("course_teachers").select("course_id, teacher_id").eq("teacher_id", teacherId),
+    supabase.from("courses").select("id").eq("instructor_id", teacherId),
+  ]);
 
-  const courseIds = (assignmentRows as AssignmentRow[]).map((row) => row.course_id);
-  const [{ data: courseRows }, { data: enrollmentRows }, { data: paymentRows }] = await Promise.all([
+  const courseIds = Array.from(
+    new Set([
+      ...((assignmentRows ?? []) as AssignmentRow[]).map((row) => row.course_id),
+      ...((ownedRows ?? []) as { id: string }[]).map((row) => row.id),
+    ]),
+  );
+  if (!courseIds.length) return [];
+
+  const [{ data: courseRows }, { data: enrollmentRows }, { data: paymentRows }, { data: earningRows }] = await Promise.all([
     supabase.from("courses").select("*, lessons(count), enrollments(count)").in("id", courseIds),
     supabase.from("enrollments").select("course_id, user_id, status").in("course_id", courseIds),
     supabase.from("payments").select("course_id, amount_kobo, status").in("course_id", courseIds).eq("status", "success"),
+    supabase.from("instructor_earnings").select("course_id, amount_kobo").eq("instructor_id", teacherId),
   ]);
 
   const courses = ((courseRows ?? []) as CourseRow[]).map(mapCourse);
   const enrollments = (enrollmentRows ?? []) as { course_id: string; user_id: string; status: string }[];
   const payments = (paymentRows ?? []) as { course_id: string; amount_kobo: number }[];
+  const earnings = (earningRows ?? []) as { course_id: string; amount_kobo: number }[];
 
   return courses.map((course) => {
     const courseEnrollments = enrollments.filter((row) => row.course_id === course.id);
     const paidStudents = new Set(courseEnrollments.map((row) => row.user_id)).size;
     return {
       ...course,
+      isOwner: course.instructorId === teacherId,
       paidStudents,
       completedStudents: courseEnrollments.filter((row) => row.status === "completed").length,
       revenueKobo: payments
         .filter((row) => row.course_id === course.id)
         .reduce((sum, row) => sum + Number(row.amount_kobo), 0),
+      earningsKobo: earnings
+        .filter((row) => row.course_id === course.id)
+        .reduce((sum, row) => sum + Number(row.amount_kobo), 0),
     };
   });
+}
+
+export const getInstructorCourses = getTeacherCourses;
+
+export type TeacherStudioCourse = {
+  course: Course;
+  lessons: Lesson[];
+};
+
+export async function getTeacherStudioCourse(teacherId: string, courseId: string): Promise<TeacherStudioCourse | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return null;
+
+  const [{ data: owned }, { data: assignment }] = await Promise.all([
+    supabase.from("courses").select("id").eq("id", courseId).eq("instructor_id", teacherId).maybeSingle(),
+    supabase.from("course_teachers").select("course_id").eq("teacher_id", teacherId).eq("course_id", courseId).maybeSingle(),
+  ]);
+  if (!owned && !assignment) return null;
+
+  const [{ data: courseRow }, { data: lessonRows }] = await Promise.all([
+    supabase.from("courses").select("*, lessons(count), enrollments(count)").eq("id", courseId).maybeSingle(),
+    supabase.from("lessons").select("*").eq("course_id", courseId).order("position"),
+  ]);
+  if (!courseRow) return null;
+
+  const course = mapCourse(courseRow as CourseRow);
+  const lessons = ((lessonRows ?? []) as LessonRow[]).map(mapLesson);
+  return { course: { ...course, lessonsCount: lessons.length }, lessons };
 }
 
 export async function getTeacherStudents(): Promise<TeacherStudent[]> {
@@ -781,6 +1008,179 @@ export async function getTeacherStudents(): Promise<TeacherStudent[]> {
   }));
 }
 
+export async function getInstructorProfile(userId: string): Promise<InstructorProfile | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("instructor_profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data ? mapInstructorProfile(data as InstructorProfileRow) : null;
+}
+
+export async function getInstructorBySlug(slug: string): Promise<{ instructor: InstructorProfile; courses: Course[] } | null> {
+  const supabase = createSupabasePublicClient();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("instructor_profiles")
+    .select("*, profiles(full_name)")
+    .eq("slug", slug)
+    .eq("is_public", true)
+    .maybeSingle();
+  if (!data) return null;
+
+  const row = data as InstructorProfileRow & {
+    profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  };
+  const { data: courseRows } = await supabase
+    .from("courses")
+    .select("*, lessons(count), enrollments(count)")
+    .eq("instructor_id", row.user_id)
+    .eq("published", true)
+    .order("created_at", { ascending: false });
+
+  return {
+    instructor: {
+      ...mapInstructorProfile(row),
+      fullName: joinedName(row.profiles) ?? "Instructor",
+    },
+    courses: ((courseRows ?? []) as CourseRow[]).map(mapCourse),
+  };
+}
+
+export async function getCourseInstructor(courseId: string): Promise<InstructorProfile | null> {
+  const supabase = createSupabasePublicClient();
+  if (!supabase) return null;
+  const { data: course } = await supabase
+    .from("courses")
+    .select("instructor_id")
+    .eq("id", courseId)
+    .maybeSingle();
+  const instructorId = (course as { instructor_id?: string | null } | null)?.instructor_id;
+  if (!instructorId) return null;
+
+  const { data } = await supabase
+    .from("instructor_profiles")
+    .select("*, profiles(full_name)")
+    .eq("user_id", instructorId)
+    .eq("is_public", true)
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as InstructorProfileRow & {
+    profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  };
+  return {
+    ...mapInstructorProfile(row),
+    fullName: joinedName(row.profiles) ?? "Instructor",
+  };
+}
+
+export async function getInstructors(): Promise<InstructorProfile[]> {
+  const admin = await getAdminClient();
+  const [{ data: profileRows }, { data: courseRows }, { data: enrollmentRows }] = await Promise.all([
+    admin
+      .from("instructor_profiles")
+      .select("*, profiles(full_name)")
+      .order("created_at", { ascending: false }),
+    admin.from("courses").select("id, instructor_id"),
+    admin.from("enrollments").select("course_id"),
+  ]);
+  const emails = await getAdminUserEmails();
+  const courses = (courseRows ?? []) as { id: string; instructor_id: string | null }[];
+  const enrollments = (enrollmentRows ?? []) as { course_id: string }[];
+
+  return ((profileRows ?? []) as (InstructorProfileRow & {
+    profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  })[]).map((row) => {
+    const owned = courses.filter((course) => course.instructor_id === row.user_id);
+    const ownedIds = new Set(owned.map((course) => course.id));
+    return {
+      ...mapInstructorProfile(row),
+      fullName: joinedName(row.profiles) ?? "Instructor",
+      email: emails.get(row.user_id) ?? "—",
+      courseCount: owned.length,
+      studentCount: enrollments.filter((enrollment) => ownedIds.has(enrollment.course_id)).length,
+    };
+  });
+}
+
+export async function getInstructorEarnings(instructorId: string): Promise<InstructorEarning[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("instructor_earnings")
+    .select("*, courses(title)")
+    .eq("instructor_id", instructorId)
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as InstructorEarningRow[]).map((row) => ({
+    id: row.id,
+    paymentId: row.payment_id,
+    instructorId: row.instructor_id,
+    courseId: row.course_id,
+    courseTitle: joinedTitle(row.courses),
+    grossKobo: Number(row.gross_kobo),
+    sharePercent: Number(row.share_percent),
+    amountKobo: Number(row.amount_kobo),
+    createdAt: row.created_at,
+  }));
+}
+
+export async function getInstructorAvailableBalance(instructorId: string): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return 0;
+  const { data, error } = await supabase.rpc("instructor_available_balance", {
+    target_instructor: instructorId,
+  });
+  if (error) return 0;
+  return Number(data ?? 0);
+}
+
+export async function getInstructorPayouts(instructorId: string): Promise<PayoutRequest[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("payout_requests")
+    .select("*")
+    .eq("instructor_id", instructorId)
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as PayoutRequestRow[]).map(mapPayout);
+}
+
+export async function getPayoutRequests(): Promise<PayoutRequest[]> {
+  const admin = await getAdminClient();
+  const { data } = await admin
+    .from("payout_requests")
+    .select("*, profiles(full_name)")
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as PayoutRequestRow[]).map(mapPayout);
+}
+
+export async function getInstructorApplications(): Promise<InstructorApplication[]> {
+  const admin = await getAdminClient();
+  const { data } = await admin
+    .from("instructor_applications")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return ((data ?? []) as InstructorApplicationRow[]).map(mapInstructorApplication);
+}
+
+export async function getPendingCourseApprovals(): Promise<(Course & { instructorName?: string })[]> {
+  const admin = await getAdminClient();
+  const { data } = await admin
+    .from("courses")
+    .select("*, lessons(count), enrollments(count), profiles(full_name)")
+    .in("review_status", ["pending", "rejected"])
+    .order("submitted_at", { ascending: false });
+  return ((data ?? []) as (CourseRow & {
+    profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  })[]).map((row) => ({
+    ...mapCourse(row),
+    instructorName: joinedName(row.profiles),
+  }));
+}
+
 export async function getAdminCourses(): Promise<Course[]> {
   const admin = await getAdminClient();
   const { data, error } = await admin
@@ -800,26 +1200,46 @@ export type AdminTeacher = {
   email: string;
   createdAt: string;
   courseIds: string[];
+  ownedCourseIds: string[];
+  slug: string | null;
+  revenueSharePercent: number;
+  isPublic: boolean;
 };
 
 export async function getAdminTeachers(): Promise<AdminTeacher[]> {
   const admin = await getAdminClient();
-  const [{ data: profileRows }, { data: assignmentRows }] = await Promise.all([
+  const [{ data: profileRows }, { data: assignmentRows }, { data: ownedRows }, { data: instructorRows }] = await Promise.all([
     admin.from("profiles").select("id, full_name, role, created_at").eq("role", "teacher").order("created_at", { ascending: false }),
     admin.from("course_teachers").select("course_id, teacher_id"),
+    admin.from("courses").select("id, instructor_id").not("instructor_id", "is", null),
+    admin.from("instructor_profiles").select("user_id, slug, revenue_share_percent, is_public"),
   ]);
 
   const profiles = (profileRows ?? []) as { id: string; full_name: string | null; created_at: string }[];
   const assignments = (assignmentRows ?? []) as AssignmentRow[];
+  const owned = (ownedRows ?? []) as { id: string; instructor_id: string }[];
+  const instructorProfiles = (instructorRows ?? []) as {
+    user_id: string;
+    slug: string;
+    revenue_share_percent: number;
+    is_public: boolean;
+  }[];
   const emails = await getAdminUserEmails();
 
-  return profiles.map((profile) => ({
-    id: profile.id,
-    fullName: profile.full_name || "Teacher",
-    email: emails.get(profile.id) ?? "—",
-    createdAt: profile.created_at,
-    courseIds: assignments.filter((row) => row.teacher_id === profile.id).map((row) => row.course_id),
-  }));
+  return profiles.map((profile) => {
+    const instructor = instructorProfiles.find((row) => row.user_id === profile.id);
+    return {
+      id: profile.id,
+      fullName: profile.full_name || "Instructor",
+      email: emails.get(profile.id) ?? "—",
+      createdAt: profile.created_at,
+      courseIds: assignments.filter((row) => row.teacher_id === profile.id).map((row) => row.course_id),
+      ownedCourseIds: owned.filter((row) => row.instructor_id === profile.id).map((row) => row.id),
+      slug: instructor?.slug ?? null,
+      revenueSharePercent: Number(instructor?.revenue_share_percent ?? 60),
+      isPublic: instructor?.is_public ?? false,
+    };
+  });
 }
 
 export async function getAdminUserEmails(): Promise<Map<string, string>> {

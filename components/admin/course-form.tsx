@@ -6,6 +6,14 @@ import { ExternalLink, Loader2, Save } from "lucide-react";
 import { saveCourseAction } from "@/app/admin/actions";
 import type { AdminActionState, Course } from "@/lib/types";
 
+type CourseFormProps = {
+  course?: Course;
+  action?: (state: AdminActionState, formData: FormData) => Promise<AdminActionState>;
+  basePath?: string;
+  canPublish?: boolean;
+  publishMode?: "admin" | "teacher";
+};
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -14,8 +22,14 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-export function CourseForm({ course }: { course?: Course }) {
-  const [state, action, pending] = useActionState<AdminActionState, FormData>(saveCourseAction, {});
+export function CourseForm({
+  course,
+  action: submitAction = saveCourseAction,
+  basePath = "/admin/courses",
+  canPublish = true,
+  publishMode = "admin",
+}: CourseFormProps) {
+  const [state, action, pending] = useActionState<AdminActionState, FormData>(submitAction, {});
   const [title, setTitle] = useState(course?.title ?? "");
   const [slug, setSlug] = useState(course?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(course));
@@ -211,15 +225,37 @@ export function CourseForm({ course }: { course?: Course }) {
             />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[var(--line)] p-3 text-sm">
-            <input
-              type="checkbox"
-              name="published"
-              defaultChecked={course?.published ?? true}
-              className="h-4 w-4 accent-[var(--accent)]"
-            />
-            Published (visible in the catalogue)
-          </label>
+          {publishMode === "teacher" ? (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[var(--line)] p-3 text-sm">
+              <input
+                type="checkbox"
+                name="submitForReview"
+                defaultChecked={course?.reviewStatus === "pending"}
+                className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+              />
+              <span>
+                Submit for review
+                <span className="mt-0.5 block text-[11px] font-normal text-[var(--muted)]">
+                  An admin publishes the class after review. You can keep editing it while it is in review.
+                </span>
+              </span>
+            </label>
+          ) : canPublish ? (
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[var(--line)] p-3 text-sm">
+              <input
+                type="checkbox"
+                name="published"
+                defaultChecked={course?.published ?? true}
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              Published (visible in the catalogue)
+            </label>
+          ) : (
+            <p className="rounded-xl border border-[var(--line)] bg-[color-mix(in_srgb,var(--accent)_5%,transparent)] p-3 text-xs leading-relaxed text-[var(--muted)]">
+              Publishing is reviewed by the master account. Save your course, add the curriculum, then submit it for
+              approval.
+            </p>
+          )}
         </div>
       </div>
 
@@ -233,7 +269,7 @@ export function CourseForm({ course }: { course?: Course }) {
             <ExternalLink size={15} /> View public page
           </Link>
         )}
-        <Link href="/admin/courses" className="btn btn-ghost">Cancel</Link>
+        <Link href={basePath} className="btn btn-ghost">Cancel</Link>
       </div>
     </form>
   );

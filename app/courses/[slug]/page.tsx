@@ -4,28 +4,34 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  ArrowRight,
-  Award,
-  BookOpen,
   CheckCircle2,
   Clock,
-  GraduationCap,
   Layers,
-  Lock,
   PlayCircle,
-  ShieldCheck,
   Star,
   Users,
+  UserRound,
 } from "lucide-react";
-import { EnrollForm } from "@/components/course/enroll-form";
+import {
+  CourseAccessProvider,
+  CoursePurchasePanel,
+  CourseReviewGate,
+  EnrolledBadge,
+  LessonAccess,
+} from "@/components/course/course-access";
 import { getCourseImage } from "@/lib/course-media";
-import { ReviewForm } from "@/components/course/review-form";
-import { getCourseBySlug, isEnrolled } from "@/lib/data";
-import { getCurrentUser } from "@/lib/auth";
+import { getCourseBySlug, getCourseInstructor, getCourses } from "@/lib/data";
 import { paymentsProvider, siteUrl } from "@/lib/env";
-import { formatDate, naira } from "@/lib/utils";
+import { formatDate, initials } from "@/lib/utils";
 
 type PageProps = { params: Promise<{ slug: string }> };
+
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const courses = await getCourses();
+  return courses.map((course) => ({ slug: course.slug }));
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -44,12 +50,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CourseDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const [course, current] = await Promise.all([getCourseBySlug(slug), getCurrentUser()]);
+  const course = await getCourseBySlug(slug);
   if (!course) notFound();
 
-  const enrolled = current ? await isEnrolled(current.id, course.id) : false;
   const image = getCourseImage(course.slug);
-  const previewLesson = course.lessons.find((lesson) => lesson.isFree);
+  const instructor = await getCourseInstructor(course.id);
+  const previewLesson = course.lessons.find((lesson) => lesson.isFree && (lesson.hasVideo || lesson.youtubeId));
   const reviewCount = course.reviews.length;
 
   const jsonLd = {
@@ -72,7 +78,8 @@ export default async function CourseDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="wrap-wide py-10">
+    <CourseAccessProvider courseId={course.id}>
+      <div className="wrap-wide py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <Link href="/courses" className="mb-5 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--ink)]">
@@ -109,7 +116,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                 <span className="rounded-lg bg-black/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide backdrop-blur-sm">
                   {course.level}
                 </span>
-                {enrolled && <span className="rounded-lg bg-white/25 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide backdrop-blur-sm">Enrolled</span>}
+                <EnrolledBadge />
               </div>
             </div>
             <div className="p-6">
@@ -133,6 +140,39 @@ export default async function CourseDetailPage({ params }: PageProps) {
             </div>
           </div>
 
+          {instructor && (
+            <section className="glass mt-6 p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Your instructor</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {instructor.avatarUrl ? (
+                  <Image
+                    src={instructor.avatarUrl}
+                    alt=""
+                    width={56}
+                    height={56}
+                    unoptimized
+                    className="h-14 w-14 rounded-2xl object-cover"
+                  />
+                ) : (
+                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] text-sm font-bold text-white">
+                    {initials(instructor.fullName || "Instructor")}
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <Link href={`/instructors/${instructor.slug}`} className="text-base font-semibold hover:text-[var(--accent)]">
+                    {instructor.fullName || "Instructor"}
+                  </Link>
+                  <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted)]">
+                    {instructor.headline || "Instructor at Your IT Class"}
+                  </p>
+                </div>
+                <Link href={`/instructors/${instructor.slug}`} className="btn btn-sm">
+                  <UserRound size={14} /> View profile
+                </Link>
+              </div>
+            </section>
+          )}
+
           {previewLesson && (
             <section className="mt-6" id="preview">
               <div className="mb-3 flex items-center justify-between">
@@ -141,14 +181,26 @@ export default async function CourseDetailPage({ params }: PageProps) {
               </div>
               <div className="glass overflow-hidden p-2">
                 <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
-                  <iframe
-                    className="absolute inset-0 h-full w-full"
-                    src={`https://www.youtube-nocookie.com/embed/${previewLesson.youtubeId}?rel=0`}
-                    title={previewLesson.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
+                  {previewLesson.hasVideo ? (
+                    <video
+                      className="absolute inset-0 h-full w-full"
+                      controls
+                      playsInline
+                      preload="metadata"
+                      src={`/api/lesson-video?lessonId=${previewLesson.id}`}
+                    >
+                      Your browser cannot play this video.
+                    </video>
+                  ) : (
+                    <iframe
+                      className="absolute inset-0 h-full w-full"
+                      src={`https://www.youtube-nocookie.com/embed/${previewLesson.youtubeId}?rel=0`}
+                      title={previewLesson.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  )}
                 </div>
                 <div className="flex items-center justify-between gap-3 px-2 py-2.5">
                   <div>
@@ -191,15 +243,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                     <p className="truncate text-sm font-medium">{lesson.title}</p>
                     <p className="text-xs text-[var(--muted)]">{lesson.durationMin} min · video lesson</p>
                   </div>
-                  {lesson.isFree ? (
-                    <Link href="#preview" className="badge badge-success">Free</Link>
-                  ) : enrolled ? (
-                    <Link href={`/dashboard/courses/${course.slug}`} className="text-[var(--accent)]" aria-label={`Open ${lesson.title}`}>
-                      <PlayCircle size={18} />
-                    </Link>
-                  ) : (
-                    <Lock size={15} className="text-[var(--muted)]" />
-                  )}
+                  <LessonAccess lesson={lesson} slug={course.slug} />
                 </div>
               ))}
             </div>
@@ -242,68 +286,21 @@ export default async function CourseDetailPage({ params }: PageProps) {
                 </p>
               )}
             </div>
-            {enrolled ? (
-              <div className="mt-4">
-                <ReviewForm courseId={course.id} slug={course.slug} />
-              </div>
-            ) : (
-              <p className="mt-4 text-xs text-[var(--muted)]">Only enrolled learners can leave a review.</p>
-            )}
+            <CourseReviewGate courseId={course.id} slug={course.slug} />
           </section>
         </div>
 
         <aside className="lg:sticky lg:top-24">
-          <div className="glass p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">One-time payment</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">{naira(course.priceKobo)}</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">Lifetime access · no subscription</p>
-
-            <div className="mt-4">
-              {enrolled ? (
-                <Link href={`/dashboard/courses/${course.slug}`} className="btn btn-primary btn-lg w-full">
-                  Continue learning <ArrowRight size={16} />
-                </Link>
-              ) : (
-                <EnrollForm
-                  courseId={course.id}
-                  slug={course.slug}
-                  priceKobo={course.priceKobo}
-                  loggedIn={Boolean(current)}
-                  mock={paymentsProvider === "mock"}
-                />
-              )}
-            </div>
-
-            <div className="divider my-4" />
-            <ul className="space-y-2.5 text-sm">
-              {[
-                { icon: BookOpen, text: `${course.lessonsCount} structured video lessons` },
-                { icon: Award, text: "Certificate after passing the exam" },
-                { icon: ShieldCheck, text: "Verifiable certificate serial" },
-                { icon: Clock, text: "Lifetime access, learn at your pace" },
-                { icon: GraduationCap, text: "Projects you can add to your portfolio" },
-              ].map((item) => (
-                <li key={item.text} className="flex items-center gap-2.5 text-[var(--muted)]">
-                  <item.icon size={15} className="shrink-0 text-[var(--accent)]" />
-                  {item.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="glass mt-4 p-4">
-            <p className="text-sm font-semibold">Not sure yet?</p>
-            <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-              Watch the free first lesson above. Create an account to save your progress.
-            </p>
-            {!current && (
-              <Link href="/signup" className="btn mt-3 w-full">
-                Create free account
-              </Link>
-            )}
-          </div>
+          <CoursePurchasePanel
+            courseId={course.id}
+            slug={course.slug}
+            priceKobo={course.priceKobo}
+            lessonsCount={course.lessonsCount ?? course.lessons.length}
+            mock={paymentsProvider === "mock"}
+          />
         </aside>
       </div>
-    </div>
+      </div>
+    </CourseAccessProvider>
   );
 }

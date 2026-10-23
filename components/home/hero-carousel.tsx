@@ -41,8 +41,14 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
 
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const count = slides.length;
   const current = slides[active];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setHydrated(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (active > count - 1) setActive(0);
@@ -74,6 +80,9 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
                   : offset === 2
                     ? "hiddenRight"
                     : "hiddenLeft";
+          const priorityImage = offset === 0;
+          const showImage =
+            priorityImage || (hydrated && (position === "next" || position === "prev"));
 
           return (
             <button
@@ -93,12 +102,12 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
                 }`}
                 style={{ background: `linear-gradient(135deg, ${course.gradient})` }}
               >
-                {image ? (
+                {image && showImage ? (
                   <Image
                     src={image}
                     alt=""
                     fill
-                    priority={index === 0}
+                    priority={priorityImage}
                     sizes="(max-width: 768px) 100vw, 880px"
                     className="object-cover"
                   />

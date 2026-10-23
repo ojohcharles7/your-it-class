@@ -9,10 +9,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
       <aside className="relative hidden overflow-hidden rounded-[26px] bg-[#050b18] p-8 text-white lg:block">
         <Image
-          src="/images/site/log.jpg"
+          src="/images/site/log.webp"
           alt="Students collaborating in a modern coding workspace"
           fill
-          priority
+          loading="lazy"
           sizes="(min-width: 1024px) 50vw, 100vw"
           className="object-cover"
         />

@@ -19,6 +19,8 @@ export function SiteFooter() {
               <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Learn</p>
               <div className="flex flex-col gap-2">
                 <Link href="/courses" className="hover:text-[var(--accent)]">All courses</Link>
+                <Link href="/instructors" className="hover:text-[var(--accent)]">Instructors</Link>
+                <Link href="/become-an-instructor" className="hover:text-[var(--accent)]">Become an instructor</Link>
                 <Link href="/#why" className="hover:text-[var(--accent)]">Why us</Link>
                 <Link href="/#faq" className="hover:text-[var(--accent)]">FAQ</Link>
               </div>

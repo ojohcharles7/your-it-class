@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { IntentLink } from "@/components/ui/intent-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ExternalLink,
+  Clapperboard,
   GraduationCap,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -21,15 +23,17 @@ import { initials } from "@/lib/utils";
 
 const nav = [
   { href: "/teacher", label: "Overview", icon: LayoutDashboard },
+  { href: "/teacher/studio", label: "Course studio", icon: Clapperboard },
   { href: "/teacher/students", label: "My students", icon: Users },
 ];
 
 const shortcuts = [
-  { href: "/dashboard", label: "Student dashboard", icon: GraduationCap },
-  { href: "/", label: "View website", icon: ExternalLink },
+  { href: "/dashboard", label: "Dashboard", icon: GraduationCap },
+  { href: "/", label: "Home", icon: Home },
 ];
 
 function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
   return href === "/teacher" ? pathname === "/teacher" : pathname.startsWith(href);
 }
 
@@ -85,20 +89,20 @@ export function TeacherShell({
         <p className="px-2.5 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Teaching</p>
         <nav className="space-y-1">
           {nav.map((item) => (
-            <Link key={item.href} href={item.href} className="admin-nav-link" data-active={isActive(pathname, item.href)}>
+            <IntentLink key={item.href} href={item.href} className="admin-nav-link" data-active={isActive(pathname, item.href)}>
               <item.icon size={17} />
               {item.label}
-            </Link>
+            </IntentLink>
           ))}
         </nav>
 
         <p className="px-2.5 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Shortcuts</p>
         <nav className="space-y-1">
           {shortcuts.map((item) => (
-            <Link key={item.href} href={item.href} className="admin-nav-link">
+            <IntentLink key={item.href} href={item.href} className="admin-nav-link">
               <item.icon size={17} />
               {item.label}
-            </Link>
+            </IntentLink>
           ))}
         </nav>
       </div>
@@ -109,7 +113,7 @@ export function TeacherShell({
           Teacher access
         </div>
         <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
-          You can see the classes assigned to you and every learner who paid for them.
+          Create classes, upload lesson videos, and see every learner who paid for your classes.
         </p>
       </div>
 
@@ -177,9 +181,17 @@ export function TeacherShell({
               )}
             </span>
             <div className="ml-auto flex items-center gap-1.5">
+              <Link
+                href="/"
+                title="Home"
+                aria-label="Home"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--line)] bg-[var(--surface-solid)] text-[var(--muted)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              >
+                <Home size={16} />
+              </Link>
               <ThemeToggle />
               <Link href="/dashboard" className="btn btn-sm hidden sm:inline-flex">
-                <GraduationCap size={14} /> Student view
+                <GraduationCap size={14} /> Dashboard
               </Link>
             </div>
           </div>

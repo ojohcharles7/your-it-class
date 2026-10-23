@@ -12,6 +12,8 @@ type InstallPromptEvent = Event & {
 
 const DISMISS_KEY = "yitc-install-dismissed";
 const DISMISS_FOR_MS = 30 * 24 * 60 * 60 * 1000;
+const INSTALL_PROMPT_ENABLED = process.env.NODE_ENV === "production";
+const SERVICE_WORKER_ENABLED = process.env.NODE_ENV === "production";
 
 function isStandalone() {
   return (
@@ -32,6 +34,13 @@ export function PwaManager() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
+    if (!SERVICE_WORKER_ENABLED) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      }).catch(() => {});
+      return;
+    }
+
     const register = () => {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     };
@@ -43,7 +52,7 @@ export function PwaManager() {
   }, []);
 
   useEffect(() => {
-    if (isStandalone()) return;
+    if (!INSTALL_PROMPT_ENABLED || isStandalone()) return;
 
     const dismissedAt = Number(window.localStorage.getItem(DISMISS_KEY) ?? 0);
     if (Date.now() - dismissedAt < DISMISS_FOR_MS) return;
@@ -89,44 +98,47 @@ export function PwaManager() {
   if (!visible || pathname.startsWith("/admin") || pathname.startsWith("/payment")) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-label="Install Your IT Class"
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md pb-[env(safe-area-inset-bottom)] sm:bottom-5"
-    >
-      <div className="glass-strong flex items-center gap-3 rounded-2xl p-3 shadow-2xl">
-        <Image
-          src="/icons/icon-192.png"
-          alt=""
-          width={44}
-          height={44}
-          className="h-11 w-11 shrink-0 rounded-xl"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Install Your IT Class</p>
-          <p className="text-xs leading-relaxed text-[var(--muted)]">
-            {promptEvent ? "Learn on the go, straight from your home screen." : "Tap Share, then Add to Home Screen."}
-          </p>
-        </div>
-        {promptEvent ? (
-          <button type="button" onClick={install} className="btn btn-primary shrink-0 px-3 text-xs">
-            <Download size={14} />
-            Install
+    <>
+      <div aria-hidden className="h-24 sm:h-20" />
+      <div
+        role="dialog"
+        aria-label="Install Your IT Class"
+        className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md pb-[env(safe-area-inset-bottom)] sm:bottom-5"
+      >
+        <div className="glass-strong flex items-center gap-2.5 rounded-2xl p-3 shadow-2xl">
+          <Image
+            src="/icons/icon-192.png"
+            alt=""
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 rounded-xl"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">Install Your IT Class</p>
+            <p className="truncate text-[11px] leading-relaxed text-[var(--muted)]">
+              {promptEvent ? "Learn on the go" : "Tap Share, then Add to Home Screen"}
+            </p>
+          </div>
+          {promptEvent ? (
+            <button type="button" onClick={install} className="btn btn-primary shrink-0 px-2.5 py-2 text-[11px]">
+              <Download size={13} />
+              Install
+            </button>
+          ) : (
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]" aria-hidden>
+              <Share size={15} />
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={dismiss}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[var(--muted)] transition hover:bg-[color-mix(in_srgb,var(--muted)_10%,transparent)] hover:text-[var(--ink)]"
+            aria-label="Dismiss install prompt"
+          >
+            <X size={15} />
           </button>
-        ) : (
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]" aria-hidden>
-            <Share size={16} />
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={dismiss}
-          className="btn btn-ghost icon-btn shrink-0"
-          aria-label="Dismiss install prompt"
-        >
-          <X size={15} />
-        </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

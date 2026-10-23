@@ -5,9 +5,36 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { AlertCircle, CheckCircle2, FileUp, Loader2 } from "lucide-react";
 import { prepareResourceUploadAction, saveResourceUploadAction } from "@/app/admin/actions";
+import { MAX_RESOURCE_BYTES, RESOURCE_ACCEPT, resourceContentType } from "@/lib/uploads";
 import { formatBytes } from "@/lib/utils";
+import type { AdminActionState } from "@/lib/types";
 
-export function ResourceUploadForm({ courseId }: { courseId: string }) {
+type UploadTarget = { error?: string; path?: string; token?: string };
+
+type ResourceUploadFormProps = {
+  courseId: string;
+  prepareAction?: (input: {
+    courseId: string;
+    title: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+  }) => Promise<UploadTarget>;
+  saveAction?: (input: {
+    courseId: string;
+    title: string;
+    path: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+  }) => Promise<AdminActionState>;
+};
+
+export function ResourceUploadForm({
+  courseId,
+  prepareAction = prepareResourceUploadAction,
+  saveAction = saveResourceUploadAction,
+}: ResourceUploadFormProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [title, setTitle] = useState("");
@@ -19,7 +46,7 @@ export function ResourceUploadForm({ courseId }: { courseId: string }) {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) {
-      setError("Choose a PDF, DOC or DOCX file to upload.");
+      setError("Choose a PDF, Word or EPUB file to upload.");
       return;
     }
 
@@ -28,7 +55,7 @@ export function ResourceUploadForm({ courseId }: { courseId: string }) {
     setMessage(null);
 
     startTransition(async () => {
-      const target = await prepareResourceUploadAction({
+      const target = await prepareAction({
         courseId,
         title: cleanTitle,
         fileName: file.name,
@@ -49,12 +76,7 @@ export function ResourceUploadForm({ courseId }: { courseId: string }) {
       }
 
       const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-      const lower = file.name.toLowerCase();
-      const contentType = file.type || (lower.endsWith(".doc")
-        ? "application/msword"
-        : lower.endsWith(".docx")
-          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          : "application/pdf");
+      const contentType = resourceContentType(file.name, file.type);
 
       const { error: uploadError } = await supabase.storage
         .from("course-materials")
@@ -65,7 +87,7 @@ export function ResourceUploadForm({ courseId }: { courseId: string }) {
         return;
       }
 
-      const saved = await saveResourceUploadAction({
+      const saved = await saveAction({
         courseId,
         title: cleanTitle,
         path: target.path,
@@ -108,15 +130,15 @@ export function ResourceUploadForm({ courseId }: { courseId: string }) {
           className="input"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="e.g. Week 1 — HTML cheat sheet"
+          placeholder="e.g. Week 1 — HTML cheat sheet or Course handbook"
         />
       </label>
 
       <label className="field">
-        <span className="label">PDF or Word file</span>
+        <span className="label">Book or document file</span>
         <input
           type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept={RESOURCE_ACCEPT}
           className="input h-auto cursor-pointer py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--surface-2)] file:px-3 file:py-1.5 file:text-xs file:font-semibold"
           onChange={(event) => {
             const selected = event.target.files?.[0] ?? null;
@@ -130,7 +152,7 @@ export function ResourceUploadForm({ courseId }: { courseId: string }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] text-[var(--muted)]">
-          {file ? `${file.name} · ${formatBytes(file.size)}` : "PDF, DOC or DOCX · up to 25 MB"}
+          {file ? `${file.name} · ${formatBytes(file.size)}` : `PDF, DOC, DOCX or EPUB · up to ${formatBytes(MAX_RESOURCE_BYTES)}`}
         </p>
         <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
           {pending ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}

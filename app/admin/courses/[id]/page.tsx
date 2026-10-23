@@ -3,7 +3,8 @@ import { Link } from "@/components/console-link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, Layers, ListChecks, Users, Wallet } from "lucide-react";
 import { CourseForm } from "@/components/admin/course-form";
-import { LessonEditor } from "@/components/admin/lesson-editor";
+import { LessonStudio } from "@/components/teacher/lesson-studio";
+import { deleteAdminLessonAction, prepareAdminVideoUploadAction, saveAdminLessonAction } from "@/app/admin/actions";
 import { ExamEditor } from "@/components/admin/exam-editor";
 import { LocalModeBanner } from "@/components/admin/local-mode-banner";
 import { requireAdmin } from "@/lib/auth";
@@ -40,6 +41,7 @@ type LessonRow = {
   position: number;
   title: string;
   youtube_id: string;
+  video_path?: string | null;
   duration_min: number;
   is_free: boolean;
 };
@@ -149,6 +151,7 @@ export default async function EditCoursePage({
     position: lesson.position,
     title: lesson.title,
     youtubeId: lesson.youtube_id,
+    hasVideo: Boolean(lesson.video_path),
     durationMin: lesson.duration_min,
     isFree: lesson.is_free,
   }));
@@ -206,9 +209,14 @@ export default async function EditCoursePage({
               </p>
             </div>
           </div>
-          <Link href={`/courses/${course.slug}`} target="_blank" className="btn btn-sm self-start sm:self-auto">
-            <ExternalLink size={14} /> View public page
-          </Link>
+          <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+            <Link href={`/admin/content?course=${course.id}`} className="btn btn-sm">
+              <Layers size={14} /> Books &amp; documents
+            </Link>
+            <Link href={`/courses/${course.slug}`} target="_blank" className="btn btn-sm">
+              <ExternalLink size={14} /> View public page
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -237,7 +245,15 @@ export default async function EditCoursePage({
         <CourseForm course={course} />
       </section>
 
-      <LessonEditor courseId={course.id} lessons={lessons} />
+      <LessonStudio
+        courseId={course.id}
+        lessons={lessons}
+        actions={{
+          prepare: prepareAdminVideoUploadAction,
+          save: saveAdminLessonAction,
+          delete: deleteAdminLessonAction,
+        }}
+      />
 
       <ExamEditor
         courseId={course.id}

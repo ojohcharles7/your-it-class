@@ -103,14 +103,31 @@ export function LessonPlayer({
         <div className="min-w-0 space-y-4">
           <div className="glass overflow-hidden p-2">
             <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
-              <iframe
-                key={lesson.id}
-                className="absolute inset-0 h-full w-full"
-                src={`https://www.youtube-nocookie.com/embed/${lesson.youtubeId}?rel=0`}
-                title={lesson.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {lesson.hasVideo ? (
+                <video
+                  key={lesson.id}
+                  className="absolute inset-0 h-full w-full"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={`/api/lesson-video?lessonId=${lesson.id}`}
+                >
+                  Your browser cannot play this video.
+                </video>
+              ) : lesson.youtubeId ? (
+                <iframe
+                  key={lesson.id}
+                  className="absolute inset-0 h-full w-full"
+                  src={`https://www.youtube-nocookie.com/embed/${lesson.youtubeId}?rel=0`}
+                  title={lesson.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="absolute inset-0 grid place-items-center text-sm text-slate-400">
+                  This lesson video has not been uploaded yet.
+                </div>
+              )}
             </div>
           </div>
 

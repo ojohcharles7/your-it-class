@@ -11,7 +11,11 @@ export type Profile = {
   email: string;
   role: Role;
   createdAt: string;
+  bio?: string;
+  avatarUrl?: string | null;
 };
+
+export type CourseReviewStatus = "draft" | "pending" | "published" | "rejected";
 
 export type Course = {
   id: string;
@@ -27,8 +31,81 @@ export type Course = {
   gradient: string;
   outcomes: string[];
   published: boolean;
+  instructorId?: string | null;
+  reviewStatus?: CourseReviewStatus;
+  reviewNote?: string;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
   lessonsCount?: number;
   studentsCount?: number;
+};
+
+export type InstructorProfile = {
+  userId: string;
+  slug: string;
+  headline: string;
+  bio: string;
+  phone: string;
+  website: string;
+  avatarUrl: string | null;
+  expertise: string[];
+  isPublic: boolean;
+  revenueSharePercent: number;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  fullName?: string;
+  email?: string;
+  courseCount?: number;
+  studentCount?: number;
+};
+
+export type InstructorApplication = {
+  id: string;
+  userId: string | null;
+  fullName: string;
+  email: string;
+  phone: string;
+  courseTopic: string;
+  experience: string;
+  additionalInfo: string;
+  status: "pending" | "approved" | "rejected";
+  reviewNote: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+};
+
+export type InstructorEarning = {
+  id: string;
+  paymentId: string;
+  instructorId: string;
+  courseId: string;
+  courseTitle?: string;
+  studentName?: string;
+  grossKobo: number;
+  sharePercent: number;
+  amountKobo: number;
+  createdAt: string;
+};
+
+export type PayoutRequest = {
+  id: string;
+  instructorId: string;
+  instructorName?: string;
+  amountKobo: number;
+  status: "pending" | "approved" | "rejected" | "paid";
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  note: string;
+  reviewNote: string;
+  reference: string;
+  createdAt: string;
+  reviewedAt: string | null;
+  paidAt: string | null;
 };
 
 export type Lesson = {
@@ -37,6 +114,10 @@ export type Lesson = {
   position: number;
   title: string;
   youtubeId: string;
+  videoPath?: string | null;
+  videoMime?: string | null;
+  videoSize?: number | null;
+  hasVideo?: boolean;
   durationMin: number;
   isFree: boolean;
 };

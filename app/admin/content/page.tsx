@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { Link } from "@/components/console-link";
 import { BookOpen, ExternalLink, FileText, FolderOpen, Layers, Video } from "lucide-react";
-import { deleteResourceAction } from "@/app/admin/actions";
-import { LessonEditor } from "@/components/admin/lesson-editor";
+import {
+  deleteAdminLessonAction,
+  deleteResourceAction,
+  prepareAdminVideoUploadAction,
+  saveAdminLessonAction,
+} from "@/app/admin/actions";
+import { LessonStudio } from "@/components/teacher/lesson-studio";
 import { ResourceUploadForm } from "@/components/admin/resource-upload-form";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { requireAdmin } from "@/lib/auth";
@@ -13,7 +18,7 @@ import { formatBytes, formatDate } from "@/lib/utils";
 export const metadata: Metadata = { title: "Class content" };
 export const dynamic = "force-dynamic";
 
-type Search = { course?: string; deleted?: string };
+type Search = { course?: string; deleted?: string; lessonDeleted?: string };
 
 export default async function AdminContentPage({ searchParams }: { searchParams: Promise<Search> }) {
   await requireAdmin();
@@ -24,7 +29,7 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
       <div className="admin-card p-8">
         <h1 className="text-xl font-bold">Class content</h1>
         <p className="mt-2 max-w-xl text-sm text-[var(--muted)]">
-          Videos and PDF/Word handouts are stored in Supabase. Add your project keys and run the course resources
+          Videos and PDF/Word/EPUB books are stored in Supabase. Add your project keys and run the course resources
           migration to manage class content here.
         </p>
       </div>
@@ -61,7 +66,7 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Academy</p>
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Class content</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Add video lessons and upload PDF or Word handouts for each class.
+            Add videos and upload PDF, Word or EPUB books and documents for each class.
           </p>
         </div>
         <Link href={`/courses/${selected.slug}`} target="_blank" className="btn btn-sm self-start sm:self-auto">
@@ -72,6 +77,12 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
       {filters.deleted && (
         <p className="rounded-xl border border-[color-mix(in_srgb,var(--success)_30%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] px-4 py-2.5 text-xs font-medium text-[var(--success)]">
           Document removed from the class.
+        </p>
+      )}
+
+      {filters.lessonDeleted && (
+        <p className="rounded-xl border border-[color-mix(in_srgb,var(--success)_30%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] px-4 py-2.5 text-xs font-medium text-[var(--success)]">
+          Lesson removed from the class.
         </p>
       )}
 
@@ -122,11 +133,19 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
               <Video size={17} />
             </span>
             <div>
-              <h2 className="text-sm font-semibold">Video lessons</h2>
-              <p className="text-[11px] text-[var(--muted)]">YouTube links, duration and free previews.</p>
+              <h2 className="text-sm font-semibold">Videos</h2>
+              <p className="text-[11px] text-[var(--muted)]">Upload MP4/WebM/MOV videos up to 500 MB or use YouTube.</p>
             </div>
           </div>
-          <LessonEditor courseId={selected.id} lessons={lessons} />
+          <LessonStudio
+            courseId={selected.id}
+            lessons={lessons}
+            actions={{
+              prepare: prepareAdminVideoUploadAction,
+              save: saveAdminLessonAction,
+              delete: deleteAdminLessonAction,
+            }}
+          />
         </div>
 
         <div className="min-w-0">
@@ -135,8 +154,8 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
               <FileText size={17} />
             </span>
             <div>
-              <h2 className="text-sm font-semibold">Handouts &amp; pages</h2>
-              <p className="text-[11px] text-[var(--muted)]">PDF, DOC and DOCX files for this class.</p>
+              <h2 className="text-sm font-semibold">Books &amp; documents</h2>
+              <p className="text-[11px] text-[var(--muted)]">PDF books, DOC, DOCX and EPUB files for this class.</p>
             </div>
           </div>
 

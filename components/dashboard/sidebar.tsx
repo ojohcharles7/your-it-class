@@ -60,9 +60,9 @@ export function DashboardSidebar({
             );
           })}
           {isTeacherRole(user.role) && (
-            <Link href="/teacher" className="sidebar-link" data-active={pathname.startsWith("/teacher")}>
+            <Link href="/instructor" className="sidebar-link" data-active={pathname.startsWith("/instructor")}>
               <Presentation size={17} />
-              Teaching desk
+              Instructor studio
             </Link>
           )}
           {isAdminRole(user.role) && (

@@ -26,6 +26,8 @@ export const getCurrentUser = cache(async () => {
           email: user.email ?? "",
           role: profile.role,
           createdAt: profile.created_at,
+          bio: profile.bio ?? "",
+          avatarUrl: profile.avatar_url ?? null,
         } satisfies Profile)
       : ({
           id: user.id,
@@ -65,25 +67,29 @@ export async function requireAdmin(options?: { login?: string }) {
   }
 
   if (!isAdminRole(current.profile.role)) {
-    redirect(current.profile.role === "teacher" ? "/teacher" : "/dashboard");
+    redirect(current.profile.role === "teacher" ? "/instructor" : "/dashboard");
   }
   return current;
 }
 
-export async function requireSuperAdmin() {
-  const current = await requireAdmin();
-  if (current.profile.role !== "super_admin") redirect("/admin");
+export async function requireSuperAdmin(options?: { login?: string }) {
+  const current = await requireAdmin({ login: options?.login ?? "/masteruser" });
+  if (current.profile.role !== "super_admin") {
+    redirect(current.profile.role === "teacher" ? "/instructor" : "/admin");
+  }
   return current;
 }
 
-export async function requireTeacher() {
+export async function requireInstructor() {
   const current = await getCurrentUser();
 
-  if (!current) redirect("/login?next=%2Fteacher");
+  if (!current) redirect("/login?next=%2Finstructor");
 
   if (current.profile.role === "teacher") return current;
 
-  if (isAdminRole(current.profile.role)) redirect("/admin");
+  if (isAdminRole(current.profile.role)) redirect(current.profile.role === "super_admin" ? "/master" : "/admin");
 
   redirect("/dashboard");
 }
+
+export const requireTeacher = requireInstructor;

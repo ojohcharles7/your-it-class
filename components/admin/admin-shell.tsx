@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FolderOpen,
   GraduationCap,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -54,14 +55,14 @@ const workspaceNav = [
   { href: "/admin/courses/new", label: "Add course", icon: Plus },
   { href: "/admin/content", label: "Class content", icon: FolderOpen },
   { href: "/admin/students", label: "Students", icon: Users },
-  { href: "/admin/teachers", label: "Teachers", icon: UserCog },
+  { href: "/admin/teachers", label: "Instructors", icon: UserCog },
   { href: "/admin/payments", label: "Payments", icon: Wallet },
   { href: "/admin/certificates", label: "Certificates", icon: Award },
 ];
 
 const shortcutNav = [
-  { href: "/dashboard", label: "Student view", icon: GraduationCap },
-  { href: "/", label: "View website", icon: ExternalLink },
+  { href: "/dashboard", label: "Dashboard", icon: GraduationCap },
+  { href: "/", label: "Home", icon: Home },
 ];
 
 function normalizeConsolePath(pathname: string) {
@@ -109,6 +110,10 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
   const breadcrumb = breadcrumbFor(pathname);
   const firstName = user.name.split(/\s+/)[0] || "Admin";
   const visibleNav = workspaceNav;
+  const visibleShortcuts =
+    user.role === "super_admin"
+      ? [{ href: "/master", label: "Master console", icon: ShieldCheck }, ...shortcutNav]
+      : shortcutNav;
 
   useEffect(() => {
     setMobileOpen(false);
@@ -148,7 +153,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
 
   const paletteItems = [
     ...visibleNav.map((item) => ({ ...item, href: consoleHref(item.href, pathname), group: "Pages" })),
-    ...shortcutNav.map((item) => ({ ...item, group: "Shortcuts" })),
+    ...visibleShortcuts.map((item) => ({ ...item, group: "Shortcuts" })),
     { href: consoleHref("/admin/courses/new", pathname), label: "Create a new course", icon: Plus, group: "Actions" },
   ].filter((item) => `${item.label} ${item.href}`.toLowerCase().includes(query.toLowerCase()));
 
@@ -225,7 +230,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
 
         <p className="px-2.5 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Shortcuts</p>
         <nav className="space-y-1">
-          {shortcutNav.map((item) => (
+          {visibleShortcuts.map((item) => (
             <Link key={item.href} href={item.href} className="admin-nav-link">
               <item.icon size={17} />
               {item.label}
@@ -360,6 +365,15 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
               >
                 <Search size={16} />
               </button>
+
+              <Link
+                href="/"
+                title="Home"
+                aria-label="Home"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--line)] bg-[var(--surface-solid)] text-[var(--muted)] transition hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
+              >
+                <Home size={16} />
+              </Link>
 
               <ThemeToggle className="hidden sm:inline-flex" />
 
