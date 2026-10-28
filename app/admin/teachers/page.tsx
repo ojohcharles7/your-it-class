@@ -13,7 +13,6 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminTeachersPage() {
   const current = await requireAdmin();
-  const isSuper = current.profile.role === "super_admin";
 
   if (!isSupabaseConfigured) {
     return (
@@ -38,18 +37,13 @@ export default async function AdminTeachersPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">People</p>
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Instructors</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            View instructor accounts and assign the classes they assist on. Master handles roles, ownership and shares.
+            View instructor accounts and assign the classes they assist on. Manage account roles from the Students page.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/students" className="btn btn-sm">
             <Users size={14} /> All accounts
           </Link>
-          {isSuper && (
-            <Link href="/master/instructors" className="btn btn-primary btn-sm">
-              <UserCog size={14} /> Master controls
-            </Link>
-          )}
         </div>
       </div>
 
@@ -72,8 +66,7 @@ export default async function AdminTeachersPage() {
       </div>
 
       <p className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
-        Admins can assign assistants to courses. Creating instructor accounts, approving applications, setting revenue
-        shares and transferring primary ownership happen in the master console.
+        Admins can assign assistants to courses and manage account roles from the Students page.
       </p>
 
       <div className="space-y-3">

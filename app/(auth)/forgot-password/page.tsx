@@ -3,7 +3,7 @@ import { ForgotPasswordForm } from "@/components/auth/password-forms";
 
 export const metadata: Metadata = {
   title: "Reset your password",
-  description: "Request a password reset link for your Your IT Class account.",
+  description: "Request a password reset link for your LearnHub account.",
 };
 
 export default function ForgotPasswordPage() {

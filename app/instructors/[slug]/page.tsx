@@ -56,7 +56,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
             <div className="min-w-0 flex-1 sm:pb-1">
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{instructor.fullName}</h1>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                {instructor.headline || "Instructor at Your IT Class"}
+                {instructor.headline || "Instructor at LearnHub"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 sm:pb-1">
@@ -105,7 +105,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
         </section>
 
         <aside className="admin-card p-5">
-          <h2 className="text-sm font-semibold">Teaching on Your IT Class</h2>
+          <h2 className="text-sm font-semibold">Teaching on LearnHub</h2>
           <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
             Every course is reviewed before it goes live. Learn at your own pace, keep lifetime access and earn a
             certificate when you finish.

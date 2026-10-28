@@ -5,7 +5,7 @@ import { InfoPage } from "@/components/info-page";
 export const metadata: Metadata = {
   title: "Premium",
   description:
-    "Your IT Class Premium is coming soon with mentorship, exclusive workshops and career resources for serious learners.",
+    "LearnHub Premium is coming soon with mentorship, exclusive workshops and career resources for serious learners.",
 };
 
 const perks = [

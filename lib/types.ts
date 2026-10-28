@@ -1,4 +1,4 @@
-export type Role = "student" | "teacher" | "admin" | "super_admin";
+export type Role = "student" | "teacher" | "admin" | "master";
 
 export type AdminActionState = {
   error?: string;
@@ -56,6 +56,8 @@ export type InstructorProfile = {
   accountNumber: string;
   createdAt: string;
   updatedAt: string;
+  marketplaceSharePercent: number;
+  referralSharePercent: number;
   fullName?: string;
   email?: string;
   courseCount?: number;
@@ -88,6 +90,8 @@ export type InstructorEarning = {
   grossKobo: number;
   sharePercent: number;
   amountKobo: number;
+  saleChannel: "marketplace" | "referral";
+  platformAmountKobo: number;
   createdAt: string;
 };
 
@@ -111,6 +115,7 @@ export type PayoutRequest = {
 export type Lesson = {
   id: string;
   courseId: string;
+  moduleId?: string | null;
   position: number;
   title: string;
   youtubeId: string;
@@ -120,6 +125,100 @@ export type Lesson = {
   hasVideo?: boolean;
   durationMin: number;
   isFree: boolean;
+};
+
+export type CourseModule = {
+  id: string;
+  courseId: string;
+  title: string;
+  position: number;
+  createdAt: string;
+};
+
+export type CourseQuestion = {
+  id: string;
+  courseId: string;
+  lessonId: string | null;
+  userId: string;
+  authorName?: string;
+  body: string;
+  resolved: boolean;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  answers: CourseAnswer[];
+};
+
+export type CourseAnswer = {
+  id: string;
+  questionId: string;
+  userId: string;
+  authorName?: string;
+  body: string;
+  createdAt: string;
+};
+
+export type CourseAnnouncement = {
+  id: string;
+  courseId: string;
+  createdBy: string;
+  authorName?: string;
+  title: string;
+  body: string;
+  createdAt: string;
+};
+
+export type Coupon = {
+  id: string;
+  code: string;
+  courseId: string | null;
+  courseTitle?: string;
+  instructorId: string | null;
+  discountType: "percent" | "amount";
+  discountValue: number;
+  maxRedemptions: number | null;
+  redeemedCount: number;
+  startsAt: string | null;
+  expiresAt: string | null;
+  active: boolean;
+  createdAt: string;
+};
+
+export type ManualPaymentDetails = {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  instructions: string;
+};
+
+export type PaymentSubmissionStatus = "pending" | "approved" | "rejected";
+
+export type PaymentSubmission = {
+  id: string;
+  userId: string;
+  studentName?: string;
+  studentEmail?: string;
+  courseId: string;
+  courseTitle?: string;
+  courseSlug?: string;
+  couponId: string | null;
+  couponCode?: string | null;
+  originalAmountKobo: number;
+  discountKobo: number;
+  amountKobo: number;
+  saleChannel: "marketplace" | "referral";
+  referralCode: string;
+  payerName: string;
+  payerPhone: string;
+  bankReference: string;
+  note: string;
+  proofPath: string;
+  proofUrl?: string | null;
+  status: PaymentSubmissionStatus;
+  reviewNote: string;
+  reviewedAt: string | null;
+  paymentId: string | null;
+  createdAt: string;
 };
 
 export type CourseResource = {
@@ -205,6 +304,11 @@ export type Payment = {
   amountKobo: number;
   status: "pending" | "success" | "failed";
   provider: string;
+  originalAmountKobo: number;
+  discountKobo: number;
+  couponId: string | null;
+  saleChannel: "marketplace" | "referral";
+  referralCode: string;
   createdAt: string;
   courseTitle?: string;
   studentName?: string;
@@ -212,7 +316,9 @@ export type Payment = {
 
 export type CourseDetail = Course & {
   lessons: Lesson[];
+  modules: CourseModule[];
   reviews: Review[];
+  announcements?: CourseAnnouncement[];
 };
 
 export type EnrolledCourse = Course & {

@@ -3,7 +3,7 @@ import { TeacherShell } from "@/components/teacher/teacher-shell";
 import { requireTeacher } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: { default: "Teaching desk", template: "%s · Teacher · Your IT Class" },
+  title: { default: "Teaching desk", template: "%s · Teacher · LearnHub" },
   robots: { index: false, follow: false },
 };
 

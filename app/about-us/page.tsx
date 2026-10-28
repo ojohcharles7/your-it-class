@@ -6,7 +6,7 @@ import { getCourses } from "@/lib/data";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "Your IT Class is a Nigerian learning platform built to make practical, affordable tech education accessible to everyone.",
+    "LearnHub is a Nigerian learning platform built to make practical, affordable tech education accessible to everyone.",
 };
 
 const values = [
@@ -42,7 +42,7 @@ export default async function AboutUsPage() {
     <InfoPage
       eyebrow="About Us"
       title="Practical tech education, built for Nigeria."
-      description="Your IT Class is an online learning platform operated by Charitech Concepts & Services. We help learners go from curious beginner to confident, certified practitioner."
+      description="LearnHub is an online learning platform operated by Charitech Concepts & Services. We help learners go from curious beginner to confident, certified practitioner."
       icon={HeartHandshake}
       actions={[
         { href: "/courses", label: "Browse courses", primary: true },

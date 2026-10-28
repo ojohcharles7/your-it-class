@@ -5,7 +5,7 @@ import { InfoPage } from "@/components/info-page";
 export const metadata: Metadata = {
   title: "Create a Bundle",
   description:
-    "Package your Your IT Class courses into a discounted bundle, guide learners through a full path and grow your earnings.",
+    "Package your LearnHub courses into a discounted bundle, guide learners through a full path and grow your earnings.",
 };
 
 const steps = [

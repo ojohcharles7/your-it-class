@@ -17,6 +17,10 @@ export default async function LearnPage({ params }: { params: Promise<{ slug: st
     <LessonPlayer
       course={data.course}
       lessons={data.lessons}
+      modules={data.modules}
+      announcements={data.announcements}
+      questions={data.questions}
+      currentUserId={current.id}
       resources={data.resources}
       completedIds={Array.from(data.completedIds)}
       progress={data.progress}

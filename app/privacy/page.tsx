@@ -5,7 +5,7 @@ import { supportEmail } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Your IT Class collects, uses and protects your personal data under the Nigeria Data Protection Act.",
+  description: "How LearnHub collects, uses and protects your personal data under the Nigeria Data Protection Act.",
 };
 
 export default function PrivacyPage() {
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       updated="21 October 2026"
-      intro="This policy explains what personal data Your IT Class collects, why we collect it, and the choices you have. It reflects the Nigeria Data Protection Act (NDPA) and good practice for our learners."
+      intro="This policy explains what personal data LearnHub collects, why we collect it, and the choices you have. It reflects the Nigeria Data Protection Act (NDPA) and good practice for our learners."
     >
       <h2>1. Data we collect</h2>
       <ul>

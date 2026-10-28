@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth/auth-form";
 import { getCurrentUser } from "@/lib/auth";
@@ -7,7 +6,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Log in",
-  description: "Log in to your Your IT Class dashboard to continue learning.",
+  description: "Log in to your LearnHub dashboard to continue learning.",
 };
 
 function safeNext(value: string | undefined) {
@@ -48,12 +47,6 @@ export default async function LoginPage({
       )}
 
       <AuthForm mode="login" next={target} configured={isSupabaseConfigured} />
-      <p className="mt-6 text-center text-xs text-[var(--muted)]">
-        Platform owner?{" "}
-        <Link href="/masteruser" className="font-semibold text-[var(--accent)] hover:underline">
-          Master login
-        </Link>
-      </p>
     </div>
   );
 }

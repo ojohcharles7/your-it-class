@@ -23,7 +23,7 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  console.log("Seeding Your IT Class catalogue…");
+  console.log("Seeding LearnHub catalogue…");
 
   for (const course of fixtureCourses) {
     const { data, error } = await supabase

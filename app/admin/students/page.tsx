@@ -3,6 +3,7 @@ import { Link } from "@/components/console-link";
 import { Download, GraduationCap, Search, ShieldCheck, UserCog, UserPlus, Users } from "lucide-react";
 import { setRoleAction } from "@/app/admin/actions";
 import { LocalEmptyPage } from "@/components/admin/local-empty-page";
+import { StaffCreateForm } from "@/components/admin/staff-create-form";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { requireAdmin } from "@/lib/auth";
 import { getAdminUserEmails } from "@/lib/data";
@@ -40,8 +41,8 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
   const current = await requireAdmin();
   const filters = await searchParams;
   const query = (filters.q ?? "").trim();
-  const role = ["student", "teacher", "admin", "super_admin"].includes(filters.role ?? "") ? filters.role : "all";
-  const canManageRoles = current.profile.role === "super_admin";
+  const role = ["student", "teacher", "admin", "master"].includes(filters.role ?? "") ? filters.role : "all";
+  const canManageRoles = current.profile.role === "master";
 
   if (!isSupabaseConfigured) {
     return (
@@ -88,6 +89,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
     );
     return {
       ...profile,
+      role: (String(profile.role) === "super_admin" ? "master" : profile.role) as Role,
       email: emails.get(profile.id) ?? "—",
       total: own.length,
       completed,
@@ -103,7 +105,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
   });
 
   const enrolled = new Set(enrollments.map((enrollment) => enrollment.user_id)).size;
-  const admins = profiles.filter((profile) => profile.role === "admin" || profile.role === "super_admin").length;
+  const admins = profiles.filter((profile) => profile.role === "admin" || profile.role === "master").length;
   const teachers = profiles.filter((profile) => profile.role === "teacher").length;
   const newThisMonth = profiles.filter((profile) => new Date(profile.created_at) >= monthStart).length;
 
@@ -152,6 +154,18 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
           </div>
         ))}
       </div>
+
+      {current.profile.role === "master" && (
+        <section className="admin-card p-5">
+          <h2 className="text-base font-semibold">Create staff account</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Master users can create new master, admin or instructor accounts.
+          </p>
+          <div className="mt-4">
+            <StaffCreateForm />
+          </div>
+        </section>
+      )}
 
       <div className="admin-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[var(--line)] p-3 lg:flex-row lg:items-center lg:justify-between">
@@ -244,8 +258,10 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
                     <td>
                       <span
                         className={`badge ${
-                          row.role === "super_admin" || row.role === "admin"
-                            ? "badge-accent"
+                          row.role === "master"
+                            ? "badge-warning"
+                            : row.role === "admin"
+                              ? "badge-accent"
                             : row.role === "teacher"
                               ? "badge-success"
                               : "badge-muted"
@@ -258,7 +274,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
                       <div className="flex justify-end">
                         {isSelf ? (
                           <span className="text-[11px] text-[var(--muted)]">You</span>
-                        ) : canManageRoles && row.role !== "super_admin" ? (
+                        ) : canManageRoles ? (
                           <form action={setRoleAction} className="flex items-center gap-1.5">
                             <input type="hidden" name="userId" value={row.id} />
                             <select
@@ -270,6 +286,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
                               <option value="student">Student</option>
                               <option value="teacher">Teacher</option>
                               <option value="admin">Admin</option>
+                              <option value="master">Master user</option>
                             </select>
                             <ConfirmButton
                               message={`Change the role for ${row.full_name || "this user"}?`}

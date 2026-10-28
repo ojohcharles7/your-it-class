@@ -35,7 +35,7 @@ export default async function LocalAdminLoginPage() {
             <Zap size={19} strokeWidth={2.4} />
           </span>
           <span>
-            <span className="block text-[13px] font-extrabold uppercase tracking-[0.16em]">Your IT Class</span>
+            <span className="block text-[13px] font-extrabold uppercase tracking-[0.16em]">LearnHub</span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">Control center</span>
           </span>
         </Link>

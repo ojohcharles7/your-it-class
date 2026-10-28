@@ -7,7 +7,7 @@ import { supportEmail } from "@/lib/env";
 export const metadata: Metadata = {
   title: "Support Us",
   description:
-    "Support practical tech education in Nigeria by sharing Your IT Class, teaching, partnering with us or sending feedback.",
+    "Support practical tech education in Nigeria by sharing LearnHub, teaching, partnering with us or sending feedback.",
 };
 
 const ways = [
@@ -46,7 +46,7 @@ export default function SupportUsPage() {
     <InfoPage
       eyebrow="Support Us"
       title="Help more people learn."
-      description="Your IT Class grows through learners, instructors and partners who believe practical tech education should be affordable and accessible."
+      description="LearnHub grows through learners, instructors and partners who believe practical tech education should be affordable and accessible."
       icon={HeartHandshake}
       actions={[
         { href: "/contact", label: "Contact us", primary: true },

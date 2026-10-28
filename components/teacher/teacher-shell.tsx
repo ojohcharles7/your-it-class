@@ -68,7 +68,7 @@ export function TeacherShell({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-extrabold uppercase tracking-[0.16em] text-white">
-              Your IT Class
+              LearnHub
             </span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
               Teaching desk

@@ -166,7 +166,7 @@ export default async function InstructorOverviewPage() {
           <BookOpen size={24} className="mx-auto text-[var(--muted)]" />
           <h2 className="mt-3 text-sm font-semibold">No courses yet</h2>
           <p className="mx-auto mt-1 max-w-sm text-xs text-[var(--muted)]">
-            Create your first course, add lessons and submit it for master approval. Once approved, learners can enrol.
+            Create your first course, add lessons and submit it for admin approval. Once approved, learners can enrol.
           </p>
           <Link href="/instructor/courses/new" className="btn btn-primary btn-sm mt-4">
             <Plus size={14} /> Create a course

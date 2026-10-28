@@ -154,7 +154,7 @@ export function InstructorProfileForm({
       <div className="rounded-2xl border border-[var(--line)] p-4">
         <h2 className="text-sm font-semibold">Payout bank details</h2>
         <p className="mt-0.5 text-[11px] text-[var(--muted)]">
-          These details are used for payout requests and are only visible to you and the master account.
+          These details are used for payout requests and are only visible to you and an admin.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <div className="field mb-0">

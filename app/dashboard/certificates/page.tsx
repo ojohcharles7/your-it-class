@@ -69,7 +69,7 @@ export default async function CertificatesPage() {
       )}
 
       <p className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
-        <ExternalLink size={13} /> Anyone can confirm a certificate at youritclass.com/verify using its serial.
+        <ExternalLink size={13} /> Anyone can confirm a certificate at learnhub.com/verify using its serial.
       </p>
     </div>
   );

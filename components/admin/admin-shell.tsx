@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  Award,
   Bell,
   BookOpen,
   ChevronRight,
@@ -11,7 +10,6 @@ import {
   Command,
   ExternalLink,
   FolderOpen,
-  GraduationCap,
   Home,
   LayoutDashboard,
   LogOut,
@@ -22,12 +20,11 @@ import {
   Sparkles,
   UserCog,
   Users,
-  Wallet,
   X,
   Zap,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
-import { Link, consoleHref } from "@/components/console-link";
+import { Link } from "@/components/console-link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { roleLabel } from "@/lib/roles";
 import type { Role } from "@/lib/types";
@@ -36,15 +33,12 @@ import { initials } from "@/lib/utils";
 type Counts = {
   students: number;
   courses: number;
-  pending: number;
-  certificates: number;
   drafts: number;
 };
 
 type AdminShellProps = {
   user: { name: string; email: string; role: Role };
   counts: Counts;
-  paymentsMode: "mock" | "paystack";
   localMode?: boolean;
   children: React.ReactNode;
 };
@@ -56,30 +50,18 @@ const workspaceNav = [
   { href: "/admin/content", label: "Class content", icon: FolderOpen },
   { href: "/admin/students", label: "Students", icon: Users },
   { href: "/admin/teachers", label: "Instructors", icon: UserCog },
-  { href: "/admin/payments", label: "Payments", icon: Wallet },
-  { href: "/admin/certificates", label: "Certificates", icon: Award },
 ];
-
-const shortcutNav = [
-  { href: "/dashboard", label: "Dashboard", icon: GraduationCap },
-  { href: "/", label: "Home", icon: Home },
-];
-
-function normalizeConsolePath(pathname: string) {
-  return pathname.replace(/^\/master(?=\/|$)/, "/admin");
-}
 
 function isActive(pathname: string, href: string) {
-  const path = normalizeConsolePath(pathname);
-  if (href === "/admin") return path === "/admin";
+  if (href === "/admin") return pathname === "/admin";
   if (href === "/admin/courses") {
-    return path === "/admin/courses" || /^\/admin\/courses\/(?!new$)[^/]+$/.test(path);
+    return pathname === "/admin/courses" || /^\/admin\/courses\/(?!new$)[^/]+$/.test(pathname);
   }
-  return path.startsWith(href);
+  return pathname.startsWith(href);
 }
 
 function breadcrumbFor(pathname: string) {
-  const path = normalizeConsolePath(pathname);
+  const path = pathname;
   if (path === "/admin") return [{ label: "Overview", href: "/admin" }];
   if (path === "/admin/courses/new") {
     return [
@@ -97,7 +79,7 @@ function breadcrumbFor(pathname: string) {
   return match ? [{ label: match.label, href: match.href }] : [{ label: "Console", href: "/admin" }];
 }
 
-export function AdminShell({ user, counts, paymentsMode, localMode = false, children }: AdminShellProps) {
+export function AdminShell({ user, counts, localMode = false, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -105,15 +87,10 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState("");
   const paletteInput = useRef<HTMLInputElement>(null);
-  const base = pathname.startsWith("/master") ? "/master" : "/admin";
-  const consoleLabel = base === "/master" ? "Master" : "Admin";
+  const consoleLabel = "Admin";
   const breadcrumb = breadcrumbFor(pathname);
   const firstName = user.name.split(/\s+/)[0] || "Admin";
   const visibleNav = workspaceNav;
-  const visibleShortcuts =
-    user.role === "super_admin"
-      ? [{ href: "/master", label: "Master console", icon: ShieldCheck }, ...shortcutNav]
-      : shortcutNav;
 
   useEffect(() => {
     setMobileOpen(false);
@@ -152,16 +129,13 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
   }, [mobileOpen, paletteOpen]);
 
   const paletteItems = [
-    ...visibleNav.map((item) => ({ ...item, href: consoleHref(item.href, pathname), group: "Pages" })),
-    ...visibleShortcuts.map((item) => ({ ...item, group: "Shortcuts" })),
-    { href: consoleHref("/admin/courses/new", pathname), label: "Create a new course", icon: Plus, group: "Actions" },
+    ...visibleNav.map((item) => ({ ...item, group: "Pages" })),
+    { href: "/admin/courses/new", label: "Create a new course", icon: Plus, group: "Actions" },
   ].filter((item) => `${item.label} ${item.href}`.toLowerCase().includes(query.toLowerCase()));
 
   const countsFor = (href: string) => {
     if (href === "/admin/students") return counts.students;
     if (href === "/admin/courses") return counts.courses;
-    if (href === "/admin/payments") return counts.pending;
-    if (href === "/admin/certificates") return counts.certificates;
     return null;
   };
 
@@ -174,7 +148,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-extrabold uppercase tracking-[0.16em] text-white">
-              Your IT Class
+              LearnHub
             </span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
               Control center
@@ -212,14 +186,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
                 <item.icon size={17} />
                 <span className="flex-1">{item.label}</span>
                 {count !== null && count > 0 && (
-                  <span
-                    className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
-                    style={
-                      item.href === "/admin/payments" && counts.pending > 0
-                        ? { background: "rgba(251,191,36,.16)", color: "#fbbf24" }
-                        : { background: "rgba(255,255,255,.1)", color: "#cbd5e1" }
-                    }
-                  >
+                  <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-slate-200">
                     {count}
                   </span>
                 )}
@@ -228,15 +195,6 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
           })}
         </nav>
 
-        <p className="px-2.5 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Shortcuts</p>
-        <nav className="space-y-1">
-          {visibleShortcuts.map((item) => (
-            <Link key={item.href} href={item.href} className="admin-nav-link">
-              <item.icon size={17} />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </div>
 
       <div className="mx-3 mb-3 rounded-2xl border border-white/10 bg-white/[0.05] p-3.5">
@@ -258,12 +216,10 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
           <>
             <div className="flex items-center gap-2 text-xs font-semibold text-white">
               <Sparkles size={14} className="text-amber-300" />
-              {paymentsMode === "mock" ? "Test mode active" : "Live payments"}
+              Manual payments
             </div>
             <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
-              {paymentsMode === "mock"
-                ? "Enrollments complete instantly. Set PAYMENTS_PROVIDER=paystack when you are ready to charge."
-                : "Paystack is connected. New payments sync automatically via webhook."}
+              Review bank-transfer proofs and approve enrolments from the payments page.
             </p>
             <div className="mt-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.9)]" />
@@ -386,7 +342,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
                   aria-expanded={notificationsOpen}
                 >
                   <Bell size={16} />
-                  {counts.pending + counts.drafts > 0 && (
+                  {counts.drafts > 0 && (
                     <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[var(--warning)] ring-2 ring-[var(--surface-solid)]" />
                   )}
                 </button>
@@ -395,18 +351,9 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
                   <div className="admin-card absolute right-0 top-11 z-50 w-80 overflow-hidden p-0 shadow-2xl">
                     <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
                       <p className="text-sm font-semibold">Needs attention</p>
-                      <span className="badge badge-warning">{counts.pending + counts.drafts}</span>
+                      <span className="badge badge-warning">{counts.drafts}</span>
                     </div>
                     <div className="divide-y divide-[var(--line)]">
-                      <Link href="/admin/payments" className="flex items-start gap-3 px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]">
-                        <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning)]">
-                          <Wallet size={15} />
-                        </span>
-                        <span>
-                          <span className="block text-xs font-semibold">{counts.pending} pending payment{counts.pending === 1 ? "" : "s"}</span>
-                          <span className="block text-[11px] text-[var(--muted)]">Review transactions that have not completed.</span>
-                        </span>
-                      </Link>
                       <Link href="/admin/courses" className="flex items-start gap-3 px-4 py-3 transition hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]">
                         <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
                           <BookOpen size={15} />
@@ -454,7 +401,7 @@ export function AdminShell({ user, counts, paymentsMode, localMode = false, chil
         <main className="mx-auto w-full max-w-[1480px] scroll-mt-24 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
 
         <footer className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-2 px-4 pb-6 text-[11px] text-[var(--muted)] sm:px-6 lg:px-8">
-          <span>Your IT Class · {consoleLabel} control center</span>
+          <span>LearnHub · {consoleLabel} control center</span>
           <span className="inline-flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 rounded-full ${localMode ? "bg-[var(--warning)]" : "bg-[var(--success)]"}`} />
             {localMode ? "Sample data · local preview" : "Supabase connected"}

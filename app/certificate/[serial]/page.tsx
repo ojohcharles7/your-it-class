@@ -61,7 +61,7 @@ export default async function CertificatePage({ params }: PageProps) {
                 IT
               </span>
               <div className="text-left">
-                <p className="text-sm font-bold tracking-tight">Your IT Class</p>
+                <p className="text-sm font-bold tracking-tight">LearnHub</p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[#7a7468]">Charitech Concepts &amp; Services</p>
               </div>
             </div>
@@ -76,7 +76,7 @@ export default async function CertificatePage({ params }: PageProps) {
               {certificate.courseTitle}
             </h2>
             <p className="relative mx-auto mt-4 max-w-md text-[11px] leading-relaxed text-[#7a7468]">
-              including all structured lessons, practical exercises and the final assessment required by Your IT Class.
+              including all structured lessons, practical exercises and the final assessment required by LearnHub.
             </p>
 
             <div className="relative mt-9 flex flex-col items-center justify-between gap-6 sm:flex-row sm:items-end">

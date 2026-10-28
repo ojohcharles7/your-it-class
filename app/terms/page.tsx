@@ -5,7 +5,7 @@ import { supportEmail } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "The terms that apply when you use Your IT Class to learn, enrol and earn certificates.",
+  description: "The terms that apply when you use LearnHub to learn, enrol and earn certificates.",
 };
 
 export default function TermsPage() {
@@ -13,7 +13,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       updated="21 October 2026"
-      intro="These terms govern your use of Your IT Class, an online learning platform operated by Charitech Concepts & Services. By creating an account or enrolling in a course, you agree to these terms."
+      intro="These terms govern your use of LearnHub, an online learning platform operated by Charitech Concepts & Services. By creating an account or enrolling in a course, you agree to these terms."
     >
       <h2>1. Your account</h2>
       <ul>

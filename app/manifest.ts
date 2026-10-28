@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Your IT Class — Learn tech skills that pay",
-    short_name: "Your IT Class",
+    name: "LearnHub — Learn tech skills that pay",
+    short_name: "LearnHub",
     description:
       "Practical IT courses for Nigerian learners: programming, networking, cybersecurity, data, design and more. Video lessons, projects, exams and verifiable certificates.",
     start_url: "/",
@@ -41,7 +41,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Browse courses",
         short_name: "Courses",
-        description: "Explore all Your IT Class courses",
+        description: "Explore all LearnHub courses",
         url: "/courses",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
@@ -55,7 +55,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Verify a certificate",
         short_name: "Verify",
-        description: "Check a Your IT Class certificate",
+        description: "Check a LearnHub certificate",
         url: "/verify",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },

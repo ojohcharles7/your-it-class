@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "Become an Instructor",
   description:
-    "Teach on Your IT Class. Share your skills, reach motivated learners and earn a share of every course sale.",
+    "Teach on LearnHub. Share your skills, reach motivated learners and earn a share of every course sale.",
 };
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ const benefits = [
 
 const steps = [
   { title: "Apply", body: "Tell us what you teach and a little about your experience." },
-  { title: "Get approved", body: "The master reviewer checks your application and creates your studio." },
+  { title: "Get approved", body: "The admin reviewer checks your application and creates your studio." },
   { title: "Build your course", body: "Add lessons, resources and an exam, then submit it for review." },
   { title: "Publish & earn", body: "Once approved, your course goes live and earnings start tracking." },
 ];
@@ -58,7 +58,7 @@ export default async function BecomeInstructorPage() {
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--muted)]">
-            Your IT Class is building a catalog of practical technology courses. If you can teach it well, we want to
+            LearnHub is building a catalog of practical technology courses. If you can teach it well, we want to
             help you package it, publish it and earn from it.
           </p>
 

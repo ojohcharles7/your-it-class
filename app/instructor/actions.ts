@@ -57,9 +57,6 @@ function revalidateInstructor(courseId?: string, slug?: string) {
   revalidatePath("/instructor/earnings");
   revalidatePath("/instructor/payouts");
   revalidatePath("/instructor/students");
-  revalidatePath("/master");
-  revalidatePath("/master/approvals");
-  revalidatePath("/master/instructors");
   revalidatePath("/admin");
   revalidatePath("/admin/courses");
   revalidatePath("/courses");
@@ -276,6 +273,7 @@ export async function deleteInstructorCourseAction(formData: FormData) {
 const lessonSchema = z.object({
   id: z.string().optional(),
   courseId: z.string().min(1),
+  moduleId: z.string().trim().optional().nullable(),
   position: z.coerce.number().int().min(1),
   title: z.string().trim().min(3, "Lesson title is required."),
   youtubeId: z.string().trim().optional().default(""),
@@ -336,6 +334,7 @@ export async function saveInstructorLessonAction(input: InstructorLessonInput): 
 
   const values = {
     course_id: data.courseId,
+    module_id: data.moduleId || null,
     position: data.position,
     title: data.title,
     duration_min: data.durationMin,
@@ -667,4 +666,69 @@ export async function requestPayoutAction(
 
   revalidateInstructor();
   return { message: "Payout request submitted for review." };
+}
+
+// =========================================================
+// Modules
+// =========================================================
+const moduleSchema = z.object({
+  id: z.string().optional(),
+  courseId: z.string().min(1),
+  title: z.string().trim().min(2, "Module title is required.").max(160),
+  position: z.coerce.number().int().min(1),
+});
+
+export async function saveInstructorModuleAction(formData: FormData) {
+  const current = await requireInstructor();
+  const parsed = moduleSchema.safeParse({
+    id: formData.get("id") || undefined,
+    courseId: formData.get("courseId"),
+    title: formData.get("title"),
+    position: formData.get("position"),
+  });
+  if (!parsed.success) {
+    redirect(`/instructor/courses/${String(formData.get("courseId") ?? "")}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Check the module.")}`);
+  }
+
+  const client = await writeClient();
+  const course = await ownedCourse(client, current.id, parsed.data.courseId);
+  if (!course) redirect("/instructor/courses");
+
+  const values = {
+    course_id: parsed.data.courseId,
+    title: parsed.data.title,
+    position: parsed.data.position,
+  };
+  const { error } = parsed.data.id
+    ? await client.from("course_modules").update(values).eq("id", parsed.data.id)
+    : await client.from("course_modules").insert(values);
+
+  const revalidate = () => {
+    revalidatePath(`/instructor/courses/${parsed.data.courseId}`);
+    revalidatePath(`/courses/${course.slug}`);
+    revalidatePath("/courses");
+    revalidateTag("catalog");
+  };
+  if (error) {
+    redirect(`/instructor/courses/${parsed.data.courseId}?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidate();
+  redirect(`/instructor/courses/${parsed.data.courseId}?moduleSaved=1`);
+}
+
+export async function deleteInstructorModuleAction(formData: FormData) {
+  const current = await requireInstructor();
+  const id = String(formData.get("id") ?? "");
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!id || !courseId) return;
+
+  const client = await writeClient();
+  const course = await ownedCourse(client, current.id, courseId);
+  if (!course) redirect("/instructor/courses");
+
+  await client.from("course_modules").delete().eq("id", id).eq("course_id", courseId);
+  revalidatePath(`/instructor/courses/${courseId}`);
+  revalidatePath(`/courses/${course.slug}`);
+  revalidateTag("catalog");
+  redirect(`/instructor/courses/${courseId}?deleted=1`);
 }

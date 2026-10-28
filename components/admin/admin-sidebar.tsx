@@ -2,7 +2,7 @@
 
 import { Link } from "@/components/console-link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, BookOpen, CreditCard, FolderOpen, Gauge, LogOut, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, FolderOpen, Gauge, LogOut, ShieldCheck, Users } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import { initials } from "@/lib/utils";
 
@@ -11,7 +11,6 @@ const nav = [
   { href: "/admin/courses", label: "Courses", icon: BookOpen },
   { href: "/admin/content", label: "Class content", icon: FolderOpen },
   { href: "/admin/students", label: "Students", icon: Users },
-  { href: "/admin/payments", label: "Payments", icon: CreditCard },
 ];
 
 export function AdminSidebar({ name, email }: { name: string; email: string }) {

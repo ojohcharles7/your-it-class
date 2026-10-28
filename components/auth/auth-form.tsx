@@ -108,7 +108,7 @@ export function AuthForm({
       </button>
 
       <p className="text-center text-xs text-[var(--muted)]">
-        {signup ? "Already have an account?" : "New to Your IT Class?"}{" "}
+        {signup ? "Already have an account?" : "New to LearnHub?"}{" "}
         <Link
           href={`${signup ? "/login" : "/signup"}?next=${encodeURIComponent(next)}`}
           className="font-semibold text-[var(--accent)] hover:underline"

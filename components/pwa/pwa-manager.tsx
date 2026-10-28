@@ -102,7 +102,7 @@ export function PwaManager() {
       <div aria-hidden className="h-24 sm:h-20" />
       <div
         role="dialog"
-        aria-label="Install Your IT Class"
+        aria-label="Install LearnHub"
         className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md pb-[env(safe-area-inset-bottom)] sm:bottom-5"
       >
         <div className="glass-strong flex items-center gap-2.5 rounded-2xl p-3 shadow-2xl">
@@ -114,7 +114,7 @@ export function PwaManager() {
             className="h-10 w-10 shrink-0 rounded-xl"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">Install Your IT Class</p>
+            <p className="truncate text-sm font-semibold">Install LearnHub</p>
             <p className="truncate text-[11px] leading-relaxed text-[var(--muted)]">
               {promptEvent ? "Learn on the go" : "Tap Share, then Add to Home Screen"}
             </p>

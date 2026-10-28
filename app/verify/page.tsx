@@ -5,7 +5,7 @@ import { VerifyForm } from "@/components/verify/verify-form";
 
 export const metadata: Metadata = {
   title: "Verify a certificate",
-  description: "Confirm the authenticity of a Your IT Class certificate using its unique serial number.",
+  description: "Confirm the authenticity of a LearnHub certificate using its unique serial number.",
 };
 
 export default function VerifyPage() {
@@ -18,7 +18,7 @@ export default function VerifyPage() {
           </span>
           <h1 className="mt-4 text-3xl font-bold tracking-tight">Verify a certificate</h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--muted)]">
-            Every Your IT Class certificate has a unique serial number. Enter it below to confirm the holder, course
+            Every LearnHub certificate has a unique serial number. Enter it below to confirm the holder, course
             and issue date.
           </p>
         </div>

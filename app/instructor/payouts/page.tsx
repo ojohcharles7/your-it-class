@@ -38,7 +38,7 @@ export default async function InstructorPayoutsPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Studio</p>
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Payouts</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Request a withdrawal of your available earnings. Master reviews every payout.
+            Request a withdrawal of your available earnings. An admin reviews every payout.
           </p>
         </div>
         <Link href="/instructor/profile" className="btn btn-sm self-start sm:self-auto">

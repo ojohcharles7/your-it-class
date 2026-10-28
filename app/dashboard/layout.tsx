@@ -3,7 +3,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { requireUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: { default: "Dashboard", template: "%s · Dashboard · Your IT Class" },
+  title: { default: "Dashboard", template: "%s · Dashboard · LearnHub" },
   robots: { index: false, follow: false },
 };
 

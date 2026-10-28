@@ -43,7 +43,7 @@ export default async function NewInstructorCoursePage() {
               "Choose a category, level and price in naira.",
               "Save, then upload at least one lesson.",
               "Create the final exam and add questions.",
-              "Submit the course for master approval.",
+              "Submit the course for admin approval.",
             ].map((item, index) => (
               <li key={item} className="flex gap-2.5">
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[10px] font-bold text-[var(--accent)]">

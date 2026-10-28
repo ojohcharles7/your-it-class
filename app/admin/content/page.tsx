@@ -3,15 +3,18 @@ import { Link } from "@/components/console-link";
 import { BookOpen, ExternalLink, FileText, FolderOpen, Layers, Video } from "lucide-react";
 import {
   deleteAdminLessonAction,
+  deleteModuleAction,
   deleteResourceAction,
   prepareAdminVideoUploadAction,
   saveAdminLessonAction,
+  saveModuleAction,
 } from "@/app/admin/actions";
 import { LessonStudio } from "@/components/teacher/lesson-studio";
+import { ModuleManager } from "@/components/admin/module-manager";
 import { ResourceUploadForm } from "@/components/admin/resource-upload-form";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminCourses, getCourseLessons, getCourseResources } from "@/lib/data";
+import { getAdminCourses, getCourseLessons, getCourseModules, getCourseResources } from "@/lib/data";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatBytes, formatDate } from "@/lib/utils";
 
@@ -53,9 +56,10 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
   }
 
   const selected = courses.find((course) => course.id === filters.course) ?? courses[0];
-  const [lessons, resources] = await Promise.all([
+  const [lessons, resources, modules] = await Promise.all([
     getCourseLessons(selected.id),
     getCourseResources(selected.id),
+    getCourseModules(selected.id),
   ]);
   const totalResources = courses.length ? resources.length : 0;
 
@@ -137,9 +141,17 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
               <p className="text-[11px] text-[var(--muted)]">Upload MP4/WebM/MOV videos up to 500 MB or use YouTube.</p>
             </div>
           </div>
+          <ModuleManager
+            courseId={selected.id}
+            modules={modules}
+            saveAction={saveModuleAction}
+            deleteAction={deleteModuleAction}
+          />
+
           <LessonStudio
             courseId={selected.id}
             lessons={lessons}
+            modules={modules}
             actions={{
               prepare: prepareAdminVideoUploadAction,
               save: saveAdminLessonAction,

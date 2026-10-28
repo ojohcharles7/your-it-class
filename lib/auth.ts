@@ -24,7 +24,7 @@ export const getCurrentUser = cache(async () => {
           id: profile.id,
           fullName: profile.full_name,
           email: user.email ?? "",
-          role: profile.role,
+          role: profile.role === "super_admin" ? "master" : profile.role,
           createdAt: profile.created_at,
           bio: profile.bio ?? "",
           avatarUrl: profile.avatar_url ?? null,
@@ -58,7 +58,7 @@ export async function requireAdmin(options?: { login?: string }) {
           id: "local-admin",
           fullName: "Local Admin",
           email: local.email,
-          role: "super_admin",
+          role: "admin",
           createdAt: new Date().toISOString(),
         } satisfies Profile,
       };
@@ -72,9 +72,9 @@ export async function requireAdmin(options?: { login?: string }) {
   return current;
 }
 
-export async function requireSuperAdmin(options?: { login?: string }) {
-  const current = await requireAdmin({ login: options?.login ?? "/masteruser" });
-  if (current.profile.role !== "super_admin") {
+export async function requireMaster(options?: { login?: string }) {
+  const current = await requireAdmin({ login: options?.login ?? "/admin/login" });
+  if (current.profile.role !== "master") {
     redirect(current.profile.role === "teacher" ? "/instructor" : "/admin");
   }
   return current;
@@ -87,7 +87,7 @@ export async function requireInstructor() {
 
   if (current.profile.role === "teacher") return current;
 
-  if (isAdminRole(current.profile.role)) redirect(current.profile.role === "super_admin" ? "/master" : "/admin");
+  if (isAdminRole(current.profile.role)) redirect("/admin");
 
   redirect("/dashboard");
 }

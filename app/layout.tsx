@@ -11,8 +11,8 @@ import { siteUrl } from "@/lib/env";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Your IT Class — Learn tech skills that pay",
-    template: "%s · Your IT Class",
+    default: "LearnHub — Learn tech skills that pay",
+    template: "%s · LearnHub",
   },
   description:
     "Practical IT courses for Nigerian learners: programming, networking, cybersecurity, data, design and more. Video lessons, projects, exams and verifiable certificates.",
@@ -28,21 +28,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_NG",
     url: siteUrl,
-    siteName: "Your IT Class",
-    title: "Your IT Class — Learn tech skills that pay",
+    siteName: "LearnHub",
+    title: "LearnHub — Learn tech skills that pay",
     description:
       "Video lessons, real projects, exams and verifiable certificates. Built for Nigerian learners.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Your IT Class — Learn tech skills that pay",
+    title: "LearnHub — Learn tech skills that pay",
     description: "Practical IT education for Nigerian learners.",
   },
   robots: { index: true, follow: true },
-  applicationName: "Your IT Class",
+  applicationName: "LearnHub",
   manifest: "/manifest.webmanifest",
   formatDetection: { telephone: false, email: false, address: false },
-  appleWebApp: { capable: true, title: "Your IT Class", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "LearnHub", statusBarStyle: "default" },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },

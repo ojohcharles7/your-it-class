@@ -5,12 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import {
-  isSupabaseAdminConfigured,
-  isSupabaseConfigured,
-  masterAdminEmail,
-  siteUrl,
-} from "@/lib/env";
+import { isSupabaseAdminConfigured, isSupabaseConfigured, masterAdminEmail, siteUrl } from "@/lib/env";
 import { destroyLocalAdminSession, getLocalAdminSession } from "@/lib/local-admin";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -73,8 +68,7 @@ export async function loginAction(_state: AuthState, formData: FormData): Promis
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
       revalidatePath("/", "layout");
       if (profile?.role === "teacher") redirect("/instructor");
-      if (profile?.role === "super_admin") redirect("/master");
-      if (profile?.role === "admin") redirect("/admin");
+      if (profile?.role === "admin" || profile?.role === "master" || profile?.role === "super_admin") redirect("/admin");
     }
   }
 
@@ -84,79 +78,72 @@ export async function loginAction(_state: AuthState, formData: FormData): Promis
 
 export async function masterLoginAction(_state: AuthState, formData: FormData): Promise<AuthState> {
   if (!isSupabaseConfigured) {
-    return { error: "Supabase is not connected yet. Add your project keys to .env.local to enable the master account." };
+    return { error: "Supabase is not connected yet. Add your project keys to .env.local." };
   }
 
-  const password = String(formData.get("password") ?? "");
-  if (password.length < 6) return { error: "Enter the master password." };
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check your details." };
+
+  const email = parsed.data.email.toLowerCase();
+  if (email !== masterAdminEmail) {
+    return { error: "This email is not allowed to use master login." };
+  }
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { error: "Supabase is not connected yet." };
 
   const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: masterAdminEmail,
-    password,
+    email,
+    password: parsed.data.password,
   });
 
   let userId = signInData.user?.id ?? null;
 
   if (signInError) {
     if (signInError.message.toLowerCase().includes("email not confirmed")) {
-      return {
-        error: `The master email (${masterAdminEmail}) is not confirmed yet. Open the confirmation email, then log in again.`,
-      };
+      return { error: `The master email (${email}) is not confirmed yet. Confirm it, then try again.` };
     }
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: masterAdminEmail,
-      password,
+      email,
+      password: parsed.data.password,
       options: {
-        data: { full_name: "Master Admin" },
-        emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/master")}`,
+        data: { full_name: "Master User" },
+        emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/admin")}`,
       },
     });
 
-    if (signUpError) {
-      return { error: signUpError.message };
-    }
-
+    if (signUpError) return { error: signUpError.message };
     if (signUpData.user?.identities?.length === 0) {
-      return {
-        error:
-          "The master account already exists, but that password is incorrect. Recover it with “Forgot master password?” below.",
-      };
+      return { error: "The master account already exists, but that password is incorrect." };
     }
 
     userId = signUpData.user?.id ?? null;
-
     if (!signUpData.session) {
-      return {
-        message: `Master account created. Confirm ${masterAdminEmail} from your inbox, then log in here again.`,
-      };
+      return { message: `Master account created. Confirm ${email} from your inbox, then log in again.` };
     }
   }
 
   if (!userId) return { error: "Could not open the master account." };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", userId)
-    .maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
 
-  if (profile?.role !== "super_admin") {
+  if (profile?.role !== "master" && profile?.role !== "super_admin") {
     if (!isSupabaseAdminConfigured) {
       await supabase.auth.signOut();
       return {
         error:
-          "This account is not marked as master. Apply supabase/migrations/20261021150000_teachers.sql in Supabase, or run `npm run create-master` with SUPABASE_SERVICE_ROLE_KEY set.",
+          "This account is not linked as a master user yet. Apply supabase/migrations/20261029000000_master_user.sql in Supabase, then try again.",
       };
     }
 
     const admin = createSupabaseAdminClient();
     const { error: promoteError } = await admin
       .from("profiles")
-      .update({ role: "super_admin", full_name: "Master Admin" })
+      .update({ role: "master", full_name: "Master User" })
       .eq("id", userId);
 
     if (promoteError) {
@@ -166,7 +153,7 @@ export async function masterLoginAction(_state: AuthState, formData: FormData): 
   }
 
   revalidatePath("/", "layout");
-  redirect("/master");
+  redirect("/admin");
 }
 
 export async function signupAction(_state: AuthState, formData: FormData): Promise<AuthState> {

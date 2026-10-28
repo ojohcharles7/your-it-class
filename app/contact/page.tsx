@@ -5,7 +5,7 @@ import { supportEmail } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Contact & Support",
-  description: "Get help with your Your IT Class account, payments, courses or certificates.",
+  description: "Get help with your LearnHub account, payments, courses or certificates.",
 };
 
 const topics = [

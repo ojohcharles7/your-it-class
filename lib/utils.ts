@@ -71,5 +71,5 @@ export function serialFor(slug: string) {
   const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
   const code = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
-  return `YIC-${slug.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase()}-${code}`;
+  return `LH-${slug.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase()}-${code}`;
 }

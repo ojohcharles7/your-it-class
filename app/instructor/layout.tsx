@@ -3,7 +3,7 @@ import { InstructorShell } from "@/components/instructor/instructor-shell";
 import { requireInstructor } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: { default: "Instructor studio", template: "%s · Instructor · Your IT Class" },
+  title: { default: "Instructor studio", template: "%s · Instructor · LearnHub" },
   robots: { index: false, follow: false },
 };
 

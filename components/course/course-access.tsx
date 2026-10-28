@@ -7,7 +7,7 @@ import { EnrollForm } from "@/components/course/enroll-form";
 import { ReviewForm } from "@/components/course/review-form";
 import { useEnrollmentStatus } from "@/components/course/use-enrollment-status";
 import { naira } from "@/lib/utils";
-import type { Lesson } from "@/lib/types";
+import type { Lesson, ManualPaymentDetails, PaymentSubmission } from "@/lib/types";
 
 type CourseAccess = ReturnType<typeof useEnrollmentStatus>;
 
@@ -68,13 +68,17 @@ export function CoursePurchasePanel({
   slug,
   priceKobo,
   lessonsCount,
-  mock,
+  details,
+  submission,
+  referralCode,
 }: {
   courseId: string;
   slug: string;
   priceKobo: number;
   lessonsCount: number;
-  mock: boolean;
+  details: ManualPaymentDetails;
+  submission: PaymentSubmission | null;
+  referralCode: string;
 }) {
   const { authenticated, enrolled, loading } = useCourseAccess();
 
@@ -93,7 +97,15 @@ export function CoursePurchasePanel({
           ) : loading ? (
             <span aria-hidden className="skeleton block h-12 w-full rounded-xl" />
           ) : (
-            <EnrollForm courseId={courseId} slug={slug} priceKobo={priceKobo} loggedIn={authenticated} mock={mock} />
+            <EnrollForm
+              courseId={courseId}
+              slug={slug}
+              priceKobo={priceKobo}
+              loggedIn={authenticated}
+              details={details}
+              submission={submission}
+              referralCode={referralCode}
+            />
           )}
         </div>
 

@@ -66,7 +66,13 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
 
   return (
     <div>
-      <div className="relative mx-auto h-[360px] w-full max-w-[1280px] sm:h-[450px] lg:h-[520px]">
+      <div className="relative mx-auto h-[360px] w-full max-w-[1520px] sm:h-[450px] lg:h-[520px]">
+        <div
+          className="pointer-events-none absolute inset-x-[14%] top-10 bottom-10 rounded-[50%] opacity-45 blur-3xl transition-[background] duration-700"
+          style={{ background: `linear-gradient(135deg, ${current.gradient})` }}
+          aria-hidden="true"
+        />
+
         {slides.map((course, index) => {
           const offset = (index - active + count) % count;
           const image = getCourseImage(course.slug);
@@ -92,13 +98,13 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
               aria-label={`Show ${course.category}: ${course.title}`}
               aria-current={position === "center" ? "true" : undefined}
               tabIndex={position === "center" ? 0 : -1}
-              className={`absolute top-0 w-full max-w-[880px] text-left transition-all duration-700 ease-[cubic-bezier(.2,.7,.3,1)] ${
+              className={`absolute top-0 w-full max-w-[1040px] text-left transition-all duration-700 ease-[cubic-bezier(.2,.7,.3,1)] ${
                 positions[position]
               } ${position === "center" ? "" : "hidden md:block"}`}
             >
               <div
-                className={`relative h-[360px] overflow-hidden rounded-[30px] border border-white/15 text-white shadow-[0_40px_100px_-30px_rgba(0,0,0,.75)] transition-shadow duration-700 sm:h-[450px] lg:h-[520px] ${
-                  position === "center" ? "ring-1 ring-white/20" : ""
+                className={`relative h-[360px] overflow-hidden rounded-[32px] border border-white/20 text-white shadow-[0_50px_120px_-40px_rgba(0,0,0,.8)] transition-shadow duration-700 sm:h-[450px] lg:h-[520px] ${
+                  position === "center" ? "ring-1 ring-white/25" : ""
                 }`}
                 style={{ background: `linear-gradient(135deg, ${course.gradient})` }}
               >
@@ -108,50 +114,66 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
                     alt=""
                     fill
                     priority={priorityImage}
-                    sizes="(max-width: 768px) 100vw, 880px"
+                    sizes="(max-width: 768px) 100vw, 1040px"
                     className="object-cover"
                   />
                 ) : (
                   <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_18%_18%,#fff_0,transparent_42%),radial-gradient(circle_at_82%_78%,#fff_0,transparent_38%)]" />
                 )}
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/25" />
                 <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:48px_48px]" />
 
-                <div className="relative flex h-full flex-col justify-between p-5 sm:p-7">
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-[32px] ring-1 ring-inset ring-white/15"
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute -left-1/4 -top-1/2 h-[150%] w-[55%] rotate-[18deg] bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-50 blur-2xl"
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute -bottom-24 left-1/2 h-40 w-[80%] -translate-x-1/2 rounded-full bg-white/10 blur-3xl"
+                  aria-hidden="true"
+                />
+
+                <div className="relative flex h-full flex-col justify-between p-4 sm:p-6">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="rounded-lg bg-black/25 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] backdrop-blur-sm">
+                    <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.25)] backdrop-blur-xl">
                       {course.category}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-black/25 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.25)] backdrop-blur-xl">
                       <Star size={12} className="fill-amber-300 text-amber-300" />
                       {course.rating.toFixed(1)}
                     </span>
                   </div>
 
                   {!image && (
-                    <span className="absolute left-1/2 top-1/2 grid h-28 w-28 -translate-x-1/2 -translate-y-[62%] place-items-center rounded-[30px] border border-white/25 bg-white/12 text-6xl shadow-[0_24px_60px_rgba(0,0,0,.35)] backdrop-blur-md sm:h-36 sm:w-36 sm:text-7xl">
+                    <span className="absolute left-1/2 top-1/2 grid h-28 w-28 -translate-x-1/2 -translate-y-[62%] place-items-center rounded-[30px] border border-white/25 bg-white/12 text-6xl shadow-[inset_0_1px_0_rgba(255,255,255,.3),0_24px_60px_rgba(0,0,0,.35)] backdrop-blur-md sm:h-36 sm:w-36 sm:text-7xl">
                       {course.emoji}
                     </span>
                   )}
 
                   <div className="relative mt-auto">
-                    <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/65">
-                      <span className="text-sm leading-none">{course.emoji}</span> Career path
-                    </p>
-                    <h3 className="mt-1.5 max-w-lg text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
-                      {course.title}
-                    </h3>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-medium text-white/80 sm:text-xs">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Layers size={13} /> {course.lessonsCount ?? 0} lessons
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Clock3 size={13} /> {course.hours} hours
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">{course.level}</span>
-                      <span className="ml-auto rounded-lg bg-white/15 px-2.5 py-1 font-semibold text-white backdrop-blur-sm">
-                        {naira(course.priceKobo)}
-                      </span>
+                    <div className="rounded-[24px] border border-white/15 bg-black/25 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_20px_50px_-30px_rgba(0,0,0,.8)] backdrop-blur-2xl sm:p-5">
+                      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/65">
+                        <span className="text-sm leading-none">{course.emoji}</span> Career path
+                      </p>
+                      <h3 className="mt-1.5 max-w-lg text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+                        {course.title}
+                      </h3>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-medium text-white/80 sm:text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Layers size={13} /> {course.lessonsCount ?? 0} lessons
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock3 size={13} /> {course.hours} hours
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">{course.level}</span>
+                        <span className="ml-auto rounded-full border border-white/20 bg-white/15 px-3 py-1 font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.25)] backdrop-blur-xl">
+                          {naira(course.priceKobo)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -161,12 +183,12 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
         })}
       </div>
 
-      <div className="mt-7 flex flex-col items-center gap-4">
-        <div className="flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 backdrop-blur-xl">
+      <div className="mt-8 flex flex-col items-center gap-4">
+        <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full border border-[var(--line)] bg-[color-mix(in_srgb,var(--surface-2)_82%,transparent)] p-1.5 shadow-[var(--shadow-sm)] backdrop-blur-2xl">
           <button
             type="button"
             onClick={() => step(-1)}
-            className="btn icon-btn btn-ghost btn-sm shrink-0"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)] hover:text-[var(--ink)]"
             aria-label="Previous course"
           >
             <ChevronLeft size={15} />
@@ -177,18 +199,18 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
               type="button"
               onClick={() => setActive(index)}
               aria-pressed={index === active}
-              className={`relative overflow-hidden rounded-xl px-3.5 py-2 text-[11px] font-semibold tracking-wide transition-colors sm:text-xs ${
+              className={`relative overflow-hidden rounded-full px-3.5 py-2 text-[11px] font-semibold tracking-wide transition-all sm:text-xs ${
                 index === active
-                  ? "bg-[var(--ink)] text-[var(--surface-solid)]"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+                  ? "bg-[var(--ink)] text-[var(--surface-solid)] shadow-[var(--shadow-sm)]"
+                  : "text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--ink)_6%,transparent)] hover:text-[var(--ink)]"
               }`}
             >
               {course.category}
               {index === active && count > 1 && (
-                <span className="absolute inset-x-2 bottom-1 block h-px overflow-hidden">
+                <span className="absolute inset-x-2 bottom-1 block h-px overflow-hidden rounded-full">
                   <span
                     key={active}
-                    className="hero-tab-progress block h-full w-full bg-[var(--accent)]"
+                    className="hero-tab-progress block h-full w-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]"
                     style={{ animationPlayState: paused ? "paused" : "running" }}
                   />
                 </span>
@@ -198,7 +220,7 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
           <button
             type="button"
             onClick={() => step(1)}
-            className="btn icon-btn btn-ghost btn-sm shrink-0"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)] hover:text-[var(--ink)]"
             aria-label="Next course"
           >
             <ChevronRight size={15} />
@@ -207,7 +229,7 @@ export function HeroCarousel({ courses }: { courses: Course[] }) {
           <button
             type="button"
             onClick={() => setPaused((value) => !value)}
-            className="btn icon-btn btn-ghost btn-sm shrink-0"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ink)_8%,transparent)] hover:text-[var(--ink)]"
             aria-label={paused ? "Play slideshow" : "Pause slideshow"}
           >
             {paused ? <Play size={14} /> : <Pause size={14} />}

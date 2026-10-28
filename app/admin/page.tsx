@@ -6,7 +6,6 @@ import {
   Award,
   BookOpen,
   BadgeCheck,
-  CircleAlert,
   CircleCheck,
   Clock3,
   CreditCard,
@@ -172,7 +171,6 @@ export default async function AdminOverviewPage() {
 
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile.full_name || "Student"]));
   const successful = payments.filter((payment) => payment.status === "success");
-  const pending = payments.filter((payment) => payment.status === "pending");
   const revenue = successful.reduce((sum, payment) => sum + Number(payment.amount_kobo), 0);
   const completed = enrollments.filter((enrollment) => enrollment.status === "completed").length;
   const completionRate = percent(completed, enrollments.length);
@@ -242,7 +240,7 @@ export default async function AdminOverviewPage() {
       sub: `${naira(revenueThisMonth)} this month`,
       delta: change(revenueThisMonth, revenueLastMonth),
       icon: Wallet,
-      href: "/admin/payments",
+      href: "/admin/export?type=payments",
       tone: "text-[var(--success)] bg-[color-mix(in_srgb,var(--success)_12%,transparent)]",
       spark: "text-[var(--success)]",
       series: months.map((month) => month.revenue),
@@ -275,7 +273,7 @@ export default async function AdminOverviewPage() {
       sub: `${certificates.length} certificates issued`,
       delta: null,
       icon: Award,
-      href: "/admin/certificates",
+      href: "/admin/export?type=certificates",
       tone: "text-[var(--warning)] bg-[color-mix(in_srgb,var(--warning)_14%,transparent)]",
       spark: "text-[var(--warning)]",
       series: months.map((month) => month.certificates),
@@ -299,12 +297,6 @@ export default async function AdminOverviewPage() {
     .slice(0, 5);
 
   const attention = [
-    {
-      label: "Pending payments",
-      value: pending.length,
-      href: "/admin/payments",
-      done: pending.length === 0,
-    },
     {
       label: "Draft courses",
       value: drafts.length,
@@ -340,11 +332,6 @@ export default async function AdminOverviewPage() {
           <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
             {today}
-            {current.profile.role === "super_admin" && (
-              <span className="ml-1 rounded-md bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-1.5 py-0.5 text-[9px] font-bold tracking-[0.12em] text-[var(--accent)]">
-                Master console
-              </span>
-            )}
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
             {greeting()}, {firstName}.
@@ -354,7 +341,7 @@ export default async function AdminOverviewPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/admin/export?type=payments" className="btn btn-sm">
+          <Link href="/admin/export?type=students" className="btn btn-sm">
             <Download size={14} /> Export report
           </Link>
           <Link href="/admin/courses/new" className="btn btn-primary btn-sm">
@@ -362,17 +349,6 @@ export default async function AdminOverviewPage() {
           </Link>
         </div>
       </div>
-
-      {pending.length > 0 && (
-        <Link
-          href="/admin/payments?status=pending"
-          className="flex flex-wrap items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--warning)_9%,transparent)] px-4 py-2.5 text-xs text-[var(--warning)] transition hover:bg-[color-mix(in_srgb,var(--warning)_13%,transparent)]"
-        >
-          <CircleAlert size={15} />
-          <span className="font-semibold">{pending.length} payment{pending.length === 1 ? "" : "s"} awaiting confirmation.</span>
-          <span className="inline-flex items-center gap-1 font-medium">Review now <ArrowRight size={13} /></span>
-        </Link>
-      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
@@ -669,8 +645,8 @@ export default async function AdminOverviewPage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Successful payments", value: successful.length, icon: CreditCard, href: "/admin/payments", hint: "Revenue cleared" },
-          { label: "Certificates issued", value: certificates.length, icon: Award, href: "/admin/certificates", hint: "Verifiable credentials" },
+          { label: "Successful payments", value: successful.length, icon: CreditCard, href: "/admin/export?type=payments", hint: "Revenue cleared" },
+          { label: "Certificates issued", value: certificates.length, icon: Award, href: "/admin/export?type=certificates", hint: "Verifiable credentials" },
           { label: "Active courses", value: courses.filter((course) => course.published).length, icon: BookOpen, href: "/admin/courses", hint: "Live in catalogue" },
         ].map((item) => (
           <Link key={item.label} href={item.href} className="admin-card admin-card-hover flex items-center gap-3 p-4">

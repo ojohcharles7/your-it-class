@@ -5,7 +5,7 @@ import { InfoPage } from "@/components/info-page";
 export const metadata: Metadata = {
   title: "Course Bundles",
   description:
-    "Combine related Your IT Class courses into one discounted learning path and earn a certificate for every course.",
+    "Combine related LearnHub courses into one discounted learning path and earn a certificate for every course.",
 };
 
 const benefits = [

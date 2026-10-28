@@ -21,7 +21,7 @@ export function VerifyForm({ initial = "" }: { initial?: string }) {
         <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
         <input
           className="input border-0 bg-transparent pl-10 focus:shadow-none"
-          placeholder="e.g. YIC-CYBER-8KQ2M4"
+          placeholder="e.g. LH-CYBER-8KQ2M4"
           value={serial}
           onChange={(event) => setSerial(event.target.value)}
           aria-label="Certificate serial"

@@ -20,11 +20,21 @@ import {
   LessonAccess,
 } from "@/components/course/course-access";
 import { getCourseImage } from "@/lib/course-media";
-import { getCourseBySlug, getCourseInstructor, getCourses } from "@/lib/data";
-import { paymentsProvider, siteUrl } from "@/lib/env";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  getCourseBySlug,
+  getCourseInstructor,
+  getCourses,
+  getLatestPaymentSubmission,
+  getManualPaymentDetails,
+} from "@/lib/data";
+import { siteUrl } from "@/lib/env";
 import { formatDate, initials } from "@/lib/utils";
 
-type PageProps = { params: Promise<{ slug: string }> };
+type PageProps = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ ref?: string }>;
+};
 
 export const revalidate = 300;
 
@@ -41,20 +51,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: course.title,
     description: course.description,
     openGraph: {
-      title: `${course.title} · Your IT Class`,
+      title: `${course.title} · LearnHub`,
       description: course.description,
       url: `${siteUrl}/courses/${course.slug}`,
     },
   };
 }
 
-export default async function CourseDetailPage({ params }: PageProps) {
-  const { slug } = await params;
+export default async function CourseDetailPage({ params, searchParams }: PageProps) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const course = await getCourseBySlug(slug);
   if (!course) notFound();
 
   const image = getCourseImage(course.slug);
-  const instructor = await getCourseInstructor(course.id);
+  const [instructor, current, manualPayment] = await Promise.all([
+    getCourseInstructor(course.id),
+    getCurrentUser(),
+    getManualPaymentDetails(),
+  ]);
+  const submission = current ? await getLatestPaymentSubmission(current.id, course.id) : null;
+  const referralCode = (query.ref ?? "").trim().toLowerCase();
+  const groupedLessons = course.modules
+    .map((module) => ({
+      module,
+      lessons: course.lessons.filter((lesson) => lesson.moduleId === module.id),
+    }))
+    .filter((group) => group.lessons.length > 0);
+  const unassignedLessons = course.lessons.filter(
+    (lesson) => !lesson.moduleId || !course.modules.some((module) => module.id === lesson.moduleId),
+  );
   const previewLesson = course.lessons.find((lesson) => lesson.isFree && (lesson.hasVideo || lesson.youtubeId));
   const reviewCount = course.reviews.length;
 
@@ -63,7 +88,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
     "@type": "Course",
     name: course.title,
     description: course.description,
-    provider: { "@type": "Organization", name: "Your IT Class", sameAs: siteUrl },
+    provider: { "@type": "Organization", name: "LearnHub", sameAs: siteUrl },
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: course.rating,
@@ -163,7 +188,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                     {instructor.fullName || "Instructor"}
                   </Link>
                   <p className="mt-0.5 text-xs leading-relaxed text-[var(--muted)]">
-                    {instructor.headline || "Instructor at Your IT Class"}
+                    {instructor.headline || "Instructor at LearnHub"}
                   </p>
                 </div>
                 <Link href={`/instructors/${instructor.slug}`} className="btn btn-sm">
@@ -230,22 +255,70 @@ export default async function CourseDetailPage({ params }: PageProps) {
               <h2 className="text-xl font-bold tracking-tight">Course curriculum</h2>
               <p className="text-xs text-[var(--muted)]">{course.lessonsCount} lessons · {course.hours} hours</p>
             </div>
-            <div className="glass mt-4 overflow-hidden">
-              {course.lessons.map((lesson, index) => (
-                <div
-                  key={lesson.id}
-                  className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3.5 last:border-0"
-                >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-xs font-bold text-[var(--accent)]">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{lesson.title}</p>
-                    <p className="text-xs text-[var(--muted)]">{lesson.durationMin} min · video lesson</p>
+            <div className="mt-4 space-y-3">
+              {groupedLessons.map((group) => (
+                <div key={group.module.id} className="glass overflow-hidden">
+                  <div className="border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--accent)_5%,transparent)] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+                      Module {group.module.position}
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold">{group.module.title}</p>
                   </div>
-                  <LessonAccess lesson={lesson} slug={course.slug} />
+                  {group.lessons.map((lesson) => {
+                    const index = course.lessons.indexOf(lesson);
+                    return (
+                      <div key={lesson.id} className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3.5 last:border-0">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-xs font-bold text-[var(--accent)]">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{lesson.title}</p>
+                          <p className="text-xs text-[var(--muted)]">{lesson.durationMin} min · video lesson</p>
+                        </div>
+                        <LessonAccess lesson={lesson} slug={course.slug} />
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
+              {groupedLessons.length === 0 && (
+                <div className="glass overflow-hidden">
+                  {course.lessons.map((lesson, index) => (
+                    <div key={lesson.id} className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3.5 last:border-0">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-xs font-bold text-[var(--accent)]">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{lesson.title}</p>
+                        <p className="text-xs text-[var(--muted)]">{lesson.durationMin} min · video lesson</p>
+                      </div>
+                      <LessonAccess lesson={lesson} slug={course.slug} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {unassignedLessons.length > 0 && groupedLessons.length > 0 && (
+                <div className="glass overflow-hidden">
+                  <div className="border-b border-[var(--line)] px-4 py-3">
+                    <p className="text-xs font-semibold text-[var(--muted)]">More lessons</p>
+                  </div>
+                  {unassignedLessons.map((lesson) => {
+                    const index = course.lessons.indexOf(lesson);
+                    return (
+                      <div key={lesson.id} className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3.5 last:border-0">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-xs font-bold text-[var(--accent)]">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{lesson.title}</p>
+                          <p className="text-xs text-[var(--muted)]">{lesson.durationMin} min · video lesson</p>
+                        </div>
+                        <LessonAccess lesson={lesson} slug={course.slug} />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </section>
 
@@ -296,7 +369,9 @@ export default async function CourseDetailPage({ params }: PageProps) {
             slug={course.slug}
             priceKobo={course.priceKobo}
             lessonsCount={course.lessonsCount ?? course.lessons.length}
-            mock={paymentsProvider === "mock"}
+            details={manualPayment}
+            submission={submission}
+            referralCode={referralCode}
           />
         </aside>
       </div>

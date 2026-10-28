@@ -28,7 +28,7 @@ export default async function InstructorCoursesPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Studio</p>
           <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">My courses</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Create courses, build the curriculum and submit them for master approval.
+            Create courses, build the curriculum and submit them for admin approval.
           </p>
         </div>
         <Link href="/instructor/courses/new" className="btn btn-primary btn-sm self-start sm:self-auto">

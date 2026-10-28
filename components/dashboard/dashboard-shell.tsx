@@ -81,7 +81,7 @@ export function DashboardShell({ user, children }: { user: ShellUser; children: 
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-extrabold uppercase tracking-[0.16em] text-white">
-              Your IT Class
+              LearnHub
             </span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
               Learning desk
@@ -123,17 +123,12 @@ export function DashboardShell({ user, children }: { user: ShellUser; children: 
               Instructor studio
             </IntentLink>
           )}
-          {user.role === "super_admin" ? (
-            <IntentLink href="/master" className="admin-nav-link" data-active={pathname.startsWith("/master")}>
-              <ShieldCheck size={17} />
-              Master console
-            </IntentLink>
-          ) : isAdminRole(user.role) ? (
+          {isAdminRole(user.role) && (
             <IntentLink href="/admin" className="admin-nav-link" data-active={pathname.startsWith("/admin")}>
               <ShieldCheck size={17} />
               Admin panel
             </IntentLink>
-          ) : null}
+          )}
         </nav>
       </div>
 
@@ -260,7 +255,7 @@ export function DashboardShell({ user, children }: { user: ShellUser; children: 
         <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
 
         <footer className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-2 px-4 pb-6 text-[11px] text-[var(--muted)] sm:px-6 lg:px-8">
-          <span>Your IT Class · Learning desk</span>
+          <span>LearnHub · Learning desk</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
             Progress saved to your account

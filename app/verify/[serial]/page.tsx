@@ -40,7 +40,7 @@ export default async function VerifySerialPage({ params }: PageProps) {
           <div className="glass mt-6 overflow-hidden">
             <div className="bg-gradient-to-r from-[var(--success)] to-[var(--accent)] p-5 text-white">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <BadgeCheck size={19} /> This is a valid Your IT Class certificate.
+                <BadgeCheck size={19} /> This is a valid LearnHub certificate.
               </div>
               <p className="mt-1 text-xs text-white/80">Recorded in our certificate registry.</p>
             </div>
@@ -73,7 +73,7 @@ export default async function VerifySerialPage({ params }: PageProps) {
           <div className="glass mt-6 p-6 text-center">
             <p className="text-sm leading-relaxed text-[var(--muted)]">
               We could not find a certificate with that serial. Check for typos — serials usually look like{" "}
-              <span className="font-mono">YIC-PYTHON-XXXXXXXX</span>. If you believe this is an error, contact the
+              <span className="font-mono">LH-PYTHON-XXXXXXXX</span>. If you believe this is an error, contact the
               learner who shared it.
             </p>
             <div className="mt-5">

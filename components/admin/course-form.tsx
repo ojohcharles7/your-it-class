@@ -252,7 +252,7 @@ export function CourseForm({
             </label>
           ) : (
             <p className="rounded-xl border border-[var(--line)] bg-[color-mix(in_srgb,var(--accent)_5%,transparent)] p-3 text-xs leading-relaxed text-[var(--muted)]">
-              Publishing is reviewed by the master account. Save your course, add the curriculum, then submit it for
+              Publishing is reviewed by an admin. Save your course, add the curriculum, then submit it for
               approval.
             </p>
           )}

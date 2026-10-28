@@ -4,14 +4,21 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink, Layers, ListChecks, Users, Wallet } from "lucide-react";
 import { CourseForm } from "@/components/admin/course-form";
 import { LessonStudio } from "@/components/teacher/lesson-studio";
-import { deleteAdminLessonAction, prepareAdminVideoUploadAction, saveAdminLessonAction } from "@/app/admin/actions";
+import { ModuleManager } from "@/components/admin/module-manager";
+import {
+  deleteAdminLessonAction,
+  deleteModuleAction,
+  prepareAdminVideoUploadAction,
+  saveAdminLessonAction,
+  saveModuleAction,
+} from "@/app/admin/actions";
 import { ExamEditor } from "@/components/admin/exam-editor";
 import { LocalModeBanner } from "@/components/admin/local-mode-banner";
 import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseAdminConfigured } from "@/lib/env";
 import { fixtureCourses } from "@/lib/fixtures";
-import type { Course, Exam, ExamQuestion, Lesson } from "@/lib/types";
+import type { Course, CourseModule, Exam, ExamQuestion, Lesson } from "@/lib/types";
 import { naira } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Edit course" };
@@ -38,6 +45,7 @@ type CourseRow = {
 type LessonRow = {
   id: string;
   course_id: string;
+  module_id?: string | null;
   position: number;
   title: string;
   youtube_id: string;
@@ -116,9 +124,10 @@ export default async function EditCoursePage({
   if (!courseRow) notFound();
 
   const row = courseRow as CourseRow;
-  const [{ data: lessonRows }, { data: examRow }] = await Promise.all([
+  const [{ data: lessonRows }, { data: examRow }, { data: moduleRows }] = await Promise.all([
     admin.from("lessons").select("*").eq("course_id", id).order("position"),
     admin.from("exams").select("*").eq("course_id", id).maybeSingle(),
+    admin.from("course_modules").select("*").eq("course_id", id).order("position"),
   ]);
 
   let questionRows: QuestionRow[] = [];
@@ -145,9 +154,18 @@ export default async function EditCoursePage({
     studentsCount: row.enrollments?.[0]?.count ?? 0,
   };
 
+  const modules: CourseModule[] = ((moduleRows ?? []) as { id: string; course_id: string; title: string; position: number; created_at: string }[]).map((module) => ({
+    id: module.id,
+    courseId: module.course_id,
+    title: module.title,
+    position: module.position,
+    createdAt: module.created_at,
+  }));
+
   const lessons: Lesson[] = ((lessonRows ?? []) as LessonRow[]).map((lesson) => ({
     id: lesson.id,
     courseId: lesson.course_id,
+    moduleId: lesson.module_id ?? null,
     position: lesson.position,
     title: lesson.title,
     youtubeId: lesson.youtube_id,
@@ -245,9 +263,17 @@ export default async function EditCoursePage({
         <CourseForm course={course} />
       </section>
 
+      <ModuleManager
+        courseId={course.id}
+        modules={modules}
+        saveAction={saveModuleAction}
+        deleteAction={deleteModuleAction}
+      />
+
       <LessonStudio
         courseId={course.id}
         lessons={lessons}
+        modules={modules}
         actions={{
           prepare: prepareAdminVideoUploadAction,
           save: saveAdminLessonAction,

@@ -2,19 +2,19 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { isSupabaseConfigured } from "./env";
 
-const COOKIE_NAME = "yic_local_admin";
+const COOKIE_NAME = "learnhub_local_admin";
 const SESSION_SECONDS = 60 * 60 * 8;
 
 export const localAdminEnabled = !isSupabaseConfigured;
 
-export const localAdminEmail = (process.env.LOCAL_ADMIN_EMAIL?.trim() || "admin@youritclass.local").toLowerCase();
+export const localAdminEmail = (process.env.LOCAL_ADMIN_EMAIL?.trim() || "admin@learnhub.local").toLowerCase();
 export const localAdminPassword = process.env.LOCAL_ADMIN_PASSWORD?.trim() || "admin123";
 export const localAdminUsingDefaults = !process.env.LOCAL_ADMIN_PASSWORD?.trim();
 
 const secret =
   process.env.LOCAL_ADMIN_SECRET?.trim() ||
   process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-  "your-it-class-local-admin-preview";
+  "learnhub-local-admin-preview";
 
 function signature(value: string) {
   return createHmac("sha256", secret).update(value).digest("hex");

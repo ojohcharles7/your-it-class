@@ -424,8 +424,6 @@ export function LocalAdminOverview({ name }: { name: string }) {
             {[
               { href: "/admin/courses", label: "Courses", icon: Layers },
               { href: "/admin/students", label: "Students", icon: Users },
-              { href: "/admin/payments", label: "Payments", icon: Wallet },
-              { href: "/admin/certificates", label: "Certificates", icon: Award },
             ].map((item) => (
               <Link key={item.href} href={item.href} className="flex items-center gap-2 rounded-lg border border-[var(--line)] px-2.5 py-2 text-[11px] font-semibold transition hover:border-[var(--line-strong)] hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]">
                 <item.icon size={13} className="text-[var(--muted)]" /> {item.label}

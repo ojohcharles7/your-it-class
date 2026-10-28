@@ -17,11 +17,13 @@ import {
 import {
   deleteInstructorCourseAction,
   deleteInstructorLessonAction,
+  deleteInstructorModuleAction,
   deleteInstructorResourceAction,
   prepareInstructorResourceUploadAction,
   prepareInstructorVideoUploadAction,
   saveInstructorCourseAction,
   saveInstructorLessonAction,
+  saveInstructorModuleAction,
   saveInstructorResourceUploadAction,
   submitInstructorCourseAction,
 } from "@/app/instructor/actions";
@@ -29,6 +31,7 @@ import { CourseForm } from "@/components/admin/course-form";
 import { ResourceUploadForm } from "@/components/admin/resource-upload-form";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { LessonStudio } from "@/components/teacher/lesson-studio";
+import { ModuleManager } from "@/components/admin/module-manager";
 import { ExamEditor } from "@/components/instructor/exam-editor";
 import { requireInstructor } from "@/lib/auth";
 import {
@@ -59,7 +62,7 @@ export default async function InstructorCoursePage({ params, searchParams }: Pro
   const studio = await getTeacherStudioCourse(current.id, id);
   if (!studio) notFound();
 
-  const { course, lessons } = studio;
+  const { course, lessons, modules } = studio;
   const isOwner = course.instructorId === current.id;
   const [resources, examData] = await Promise.all([
     getCourseResources(course.id),
@@ -113,12 +116,12 @@ export default async function InstructorCoursePage({ params, searchParams }: Pro
         <Notice tone="success">Course created. Add lessons, handouts and a final exam, then submit it for approval.</Notice>
       )}
       {flags.submitted && (
-        <Notice tone="success">Course submitted. The master account will review it before it goes live.</Notice>
+        <Notice tone="success">Course submitted. An admin will review it before it goes live.</Notice>
       )}
       {flags.deleted && <Notice tone="success">Item removed.</Notice>}
       {flags.error && <Notice tone="danger">{decodeURIComponent(flags.error)}</Notice>}
       {status === "pending" && (
-        <Notice tone="warning">This course is waiting for master approval. You can keep editing it while it is in review.</Notice>
+        <Notice tone="warning">This course is waiting for admin approval. You can keep editing it while it is in review.</Notice>
       )}
       {status === "rejected" && (
         <Notice tone="danger">
@@ -147,7 +150,7 @@ export default async function InstructorCoursePage({ params, searchParams }: Pro
               <div>
                 <h2 className="text-base font-semibold">Course details</h2>
                 <p className="mt-0.5 text-xs text-[var(--muted)]">
-                  Changes to a published course go live immediately. The master account can unpublish it.
+                  Changes to a published course go live immediately. An admin can unpublish it.
                 </p>
               </div>
               <form action={submitInstructorCourseAction}>
@@ -170,9 +173,17 @@ export default async function InstructorCoursePage({ params, searchParams }: Pro
             />
           </section>
 
+          <ModuleManager
+            courseId={course.id}
+            modules={modules}
+            saveAction={saveInstructorModuleAction}
+            deleteAction={deleteInstructorModuleAction}
+          />
+
           <LessonStudio
             courseId={course.id}
             lessons={lessons}
+            modules={modules}
             actions={{
               prepare: prepareInstructorVideoUploadAction,
               save: saveInstructorLessonAction,

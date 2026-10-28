@@ -23,13 +23,12 @@ import {
   Package,
   PlusCircle,
   Search,
-  UserRoundPlus,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { signOutAction } from "@/app/actions/auth";
-import { isTeacherRole } from "@/lib/roles";
+import { isAdminRole, isTeacherRole } from "@/lib/roles";
 import type { Role } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
@@ -58,7 +57,7 @@ const exploreLinks = [
     href: "/become-an-instructor",
     label: "Become an Instructor",
     icon: Megaphone,
-    description: "Teach and earn on Your IT Class",
+    description: "Teach and earn on LearnHub",
   },
   { href: "/contact", label: "Contact Us", icon: Mail, description: "Get help from our support team" },
   { href: "/blogs", label: "Blogs", icon: FileText, description: "Tutorials, guides and career advice" },
@@ -82,11 +81,9 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const accountHref = user
     ? isTeacherRole(user.role)
       ? "/instructor"
-      : user.role === "super_admin"
-        ? "/master"
-        : user.role === "admin"
-          ? "/admin"
-          : "/dashboard"
+      : isAdminRole(user.role)
+        ? "/admin"
+        : "/dashboard"
     : "/dashboard";
   const exploreActive = pathname === "/explore" || exploreLinks.some((link) => pathname === link.href);
 
@@ -316,10 +313,15 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
               </form>
             </>
           ) : (
-            <Link href="/signup" prefetch className="btn btn-primary btn-sm">
-              <UserRoundPlus size={15} />
-              Get Started
-            </Link>
+            <>
+              <Link href="/login" prefetch className="btn btn-sm hidden sm:inline-flex">
+                <LogIn size={15} /> Log in
+              </Link>
+              <Link href="/signup" prefetch className="btn btn-primary btn-sm">
+                <ArrowRight size={15} />
+                Get Started
+              </Link>
+            </>
           )}
         </div>
 
@@ -440,7 +442,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
                   <LogIn size={15} /> Log in
                 </Link>
                 <Link href="/signup" prefetch className="btn btn-primary w-full" onClick={() => setOpen(false)}>
-                  <UserRoundPlus size={15} /> Get Started
+                  <ArrowRight size={15} /> Get Started
                 </Link>
               </div>
             )}

@@ -6,7 +6,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Create account",
-  description: "Create your free Your IT Class account and start learning practical tech skills.",
+  description: "Create your free LearnHub account and start learning practical tech skills.",
 };
 
 function safeNext(value: string | undefined) {

@@ -106,7 +106,7 @@ export default async function HomePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "EducationalOrganization",
-    name: "Your IT Class",
+    name: "LearnHub",
     url: siteUrl,
     description: "Practical IT courses for Nigerian learners with video lessons, exams and verifiable certificates.",
     sameAs: [],
@@ -116,17 +116,17 @@ export default async function HomePage() {
     <div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <section className="hero-glow relative overflow-hidden pb-14 pt-10 sm:pt-16">
+      <section className="hero-glow relative overflow-hidden pb-14 pt-4 sm:pt-8">
         <div className="wrap-wide">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="reveal delay-1 mt-6 text-[2.7rem] font-bold leading-[0.98] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
+          <div className="mx-auto max-w-5xl text-center">
+            <h1 className="reveal delay-1 text-[2.7rem] font-bold leading-[0.98] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
               Describe your goal.
               <br />
               We map the path in <span className="font-editorial gradient-text">minutes.</span>
             </h1>
 
-            <p className="reveal delay-1 mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-              Tell us where you want to be. Your IT Class turns it into a practical learning plan — video lessons,
+            <p className="reveal delay-1 mx-auto mt-5 max-w-3xl text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+              Tell us where you want to be. LearnHub turns it into a practical learning plan — video lessons,
               hands-on projects, timed exams and a verifiable certificate. Start free, no card required.
             </p>
           </div>
@@ -135,7 +135,7 @@ export default async function HomePage() {
             <HeroCarousel courses={courses} />
           </div>
 
-          <div className="mx-auto mt-12 grid max-w-6xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          <div className="mx-auto mt-12 grid max-w-7xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {[
               { value: `${courses.length}`, label: "Career paths" },
               { value: `${totalLessons}`, label: "Video lessons" },
@@ -171,7 +171,7 @@ export default async function HomePage() {
 
       <section className="wrap-wide py-16" id="why">
         <div className="max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Why Your IT Class</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Why LearnHub</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">A complete learning workspace</h2>
           <p className="mt-3 text-base text-[var(--muted)] sm:text-lg">
             Everything you need to go from curious beginner to confident, certified practitioner — in one place.
@@ -302,29 +302,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="wrap-wide pb-10 pt-6">
-        <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[var(--accent)] via-[var(--accent-2)] to-[var(--accent-3)] px-6 py-12 text-white sm:px-12 sm:py-16">
-          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-white/15 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-            <div className="max-w-2xl">
-              <p className="text-xs font-bold uppercase tracking-wider text-white/80">Ready when you are</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">Start learning today.</h2>
-              <p className="mt-3 text-sm leading-relaxed text-white/85 sm:text-lg">
-                Create your free account, enrol in a course, and take the first step toward a skill that pays.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/signup" className="btn bg-white text-[#12161f] hover:bg-white/90">
-                Get started free <ArrowRight size={15} />
-              </Link>
-              <Link href="/courses" className="btn border-white/30 bg-white/10 text-white hover:bg-white/20">
-                Browse courses
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

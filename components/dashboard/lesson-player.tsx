@@ -16,7 +16,8 @@ import {
   Trophy,
 } from "lucide-react";
 import { setLessonComplete } from "@/app/actions/progress";
-import type { Course, Exam, Lesson } from "@/lib/types";
+import { CourseQnA } from "@/components/course/course-qna";
+import type { Course, CourseAnnouncement, CourseModule, CourseQuestion, Exam, Lesson } from "@/lib/types";
 import type { CourseResourceLink } from "@/lib/data";
 import { formatBytes } from "@/lib/utils";
 
@@ -49,6 +50,10 @@ function CompleteButton({
 export function LessonPlayer({
   course,
   lessons,
+  modules,
+  announcements,
+  questions,
+  currentUserId,
   resources,
   completedIds,
   progress,
@@ -57,6 +62,10 @@ export function LessonPlayer({
 }: {
   course: Course;
   lessons: Lesson[];
+  modules: CourseModule[];
+  announcements: CourseAnnouncement[];
+  questions: CourseQuestion[];
+  currentUserId: string;
   resources: CourseResourceLink[];
   completedIds: string[];
   progress: number;
@@ -69,6 +78,19 @@ export function LessonPlayer({
   const lesson = lessons[index];
   const isComplete = lesson ? completed.has(lesson.id) : false;
   const hasNext = index < lessons.length - 1;
+  const sidebarGroups = modules
+    .map((module) => ({
+      key: module.id,
+      title: module.title,
+      items: lessons.map((item, itemIndex) => ({ item, itemIndex })).filter(({ item }) => item.moduleId === module.id),
+    }))
+    .filter((group) => group.items.length > 0);
+  const otherItems = lessons
+    .map((item, itemIndex) => ({ item, itemIndex }))
+    .filter(({ item }) => !item.moduleId || !modules.some((module) => module.id === item.moduleId));
+  if (otherItems.length) {
+    sidebarGroups.push({ key: "other", title: sidebarGroups.length ? "More lessons" : "", items: otherItems });
+  }
 
   if (!lesson) {
     return (
@@ -131,6 +153,13 @@ export function LessonPlayer({
             </div>
           </div>
 
+          <CourseQnA
+            courseId={course.id}
+            slug={course.slug}
+            questions={questions}
+            currentUserId={currentUserId}
+          />
+
           <div className="glass p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -167,6 +196,26 @@ export function LessonPlayer({
               </div>
             </div>
           </div>
+
+          {announcements.length > 0 && (
+            <div className="glass p-5">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Course announcements</h2>
+                <span className="badge badge-accent">{announcements.length}</span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {announcements.slice(0, 3).map((announcement) => (
+                  <div key={announcement.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-3">
+                    <p className="text-xs font-semibold">{announcement.title}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted)]">{announcement.body}</p>
+                    <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+                      {announcement.authorName || "Instructor"} · {new Date(announcement.createdAt).toLocaleDateString("en-NG")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {resources.length > 0 && (
             <div className="glass p-5">
@@ -263,42 +312,51 @@ export function LessonPlayer({
             </p>
           </div>
           <div className="max-h-[60vh] overflow-y-auto p-2">
-            {lessons.map((item, itemIndex) => {
-              const done = completed.has(item.id);
-              const active = itemIndex === index;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setIndex(itemIndex);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className={`flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left transition-colors ${
-                    active
-                      ? "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
-                      : "hover:bg-[color-mix(in_srgb,var(--muted)_8%,transparent)]"
-                  }`}
-                >
-                  <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[11px] font-bold ${
-                    done
-                      ? "bg-[color-mix(in_srgb,var(--success)_15%,transparent)] text-[var(--success)]"
-                      : active
-                        ? "bg-[var(--accent)] text-white"
-                        : "bg-[color-mix(in_srgb,var(--muted)_12%,transparent)] text-[var(--muted)]"
-                  }`}>
-                    {done ? <CheckCircle2 size={14} /> : itemIndex + 1}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-xs font-medium ${active ? "text-[var(--accent)]" : ""}`}>
-                      {item.title}
-                    </span>
-                    <span className="text-[10px] text-[var(--muted)]">{item.durationMin} min</span>
-                  </span>
-                  {active && <PlayCircle size={14} className="shrink-0 text-[var(--accent)]" />}
-                </button>
-              );
-            })}
+            {sidebarGroups.map((group) => (
+              <div key={group.key} className="mb-2">
+                {group.title && (
+                  <p className="px-2.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    {group.title}
+                  </p>
+                )}
+                {group.items.map(({ item, itemIndex }) => {
+                  const done = completed.has(item.id);
+                  const active = itemIndex === index;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setIndex(itemIndex);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className={`flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left transition-colors ${
+                        active
+                          ? "bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
+                          : "hover:bg-[color-mix(in_srgb,var(--muted)_8%,transparent)]"
+                      }`}
+                    >
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[11px] font-bold ${
+                        done
+                          ? "bg-[color-mix(in_srgb,var(--success)_15%,transparent)] text-[var(--success)]"
+                          : active
+                            ? "bg-[var(--accent)] text-white"
+                            : "bg-[color-mix(in_srgb,var(--muted)_12%,transparent)] text-[var(--muted)]"
+                      }`}>
+                        {done ? <CheckCircle2 size={14} /> : itemIndex + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`block truncate text-xs font-medium ${active ? "text-[var(--accent)]" : ""}`}>
+                          {item.title}
+                        </span>
+                        <span className="text-[10px] text-[var(--muted)]">{item.durationMin} min</span>
+                      </span>
+                      {active && <PlayCircle size={14} className="shrink-0 text-[var(--accent)]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </aside>
       </div>

@@ -5,7 +5,7 @@ import { InfoPage } from "@/components/info-page";
 export const metadata: Metadata = {
   title: "Blogs",
   description:
-    "Tutorials, career advice and practical tech guides from the Your IT Class team are coming soon.",
+    "Tutorials, career advice and practical tech guides from the LearnHub team are coming soon.",
 };
 
 const topics = [
@@ -31,7 +31,7 @@ export default function BlogsPage() {
     <InfoPage
       eyebrow="Blogs"
       title="Stories, guides and ideas."
-      description="The Your IT Class blog is coming soon. Expect practical tutorials, career advice and behind-the-scenes lessons from our instructors."
+      description="The LearnHub blog is coming soon. Expect practical tutorials, career advice and behind-the-scenes lessons from our instructors."
       icon={FileText}
       actions={[
         { href: "/courses", label: "Browse courses", primary: true },

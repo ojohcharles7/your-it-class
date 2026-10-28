@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin, requireSuperAdmin } from "@/lib/auth";
+import { requireAdmin, requireMaster } from "@/lib/auth";
 import { courseInputSchema, slugify, youtubeId } from "@/lib/course-input";
 import { COURSE_MATERIALS_BUCKET, COURSE_VIDEOS_BUCKET, getAdminUserEmails } from "@/lib/data";
 import { isSupabaseAdminConfigured, isSupabaseConfigured, siteUrl } from "@/lib/env";
@@ -113,6 +113,7 @@ export async function toggleCoursePublishAction(formData: FormData) {
 const lessonSchema = z.object({
   id: z.string().optional(),
   courseId: z.string().min(1),
+  moduleId: z.string().trim().optional(),
   position: z.coerce.number().int().min(1),
   title: z.string().trim().min(3, "Lesson title is required."),
   youtubeId: z.string().trim().optional(),
@@ -125,6 +126,7 @@ export async function saveLessonAction(_state: AdminActionState, formData: FormD
   const parsed = lessonSchema.safeParse({
     id: formData.get("id") || undefined,
     courseId: formData.get("courseId"),
+    moduleId: formData.get("moduleId"),
     position: formData.get("position"),
     title: formData.get("title"),
     youtubeId: formData.get("youtubeId"),
@@ -139,6 +141,7 @@ export async function saveLessonAction(_state: AdminActionState, formData: FormD
   const admin = await getAdminClient();
   const values = {
     course_id: parsed.data.courseId,
+    module_id: parsed.data.moduleId || null,
     position: parsed.data.position,
     title: parsed.data.title,
     duration_min: parsed.data.durationMin,
@@ -174,6 +177,7 @@ export async function deleteLessonAction(formData: FormData) {
 const adminLessonInputSchema = z.object({
   id: z.string().optional(),
   courseId: z.string().min(1),
+  moduleId: z.string().trim().optional().nullable(),
   position: z.coerce.number().int().min(1),
   title: z.string().trim().min(3, "Lesson title is required."),
   youtubeId: z.string().trim().optional(),
@@ -247,6 +251,7 @@ export async function saveAdminLessonAction(input: AdminLessonInput): Promise<Ad
 
   const values = {
     course_id: data.courseId,
+    module_id: data.moduleId || null,
     position: data.position,
     title: data.title,
     duration_min: data.durationMin,
@@ -541,13 +546,13 @@ export async function deleteQuestionAction(formData: FormData) {
 const assignableRoles = new Set<Role>(adminRoleOptions.map((option) => option.value));
 
 export async function setRoleAction(formData: FormData) {
-  const current = await requireSuperAdmin();
+  const current = await requireMaster();
   const userId = String(formData.get("userId") ?? "");
   const requested = String(formData.get("role") ?? "") as Role;
   const role = assignableRoles.has(requested) ? requested : "student";
   if (!userId || userId === current.id) return;
 
-  // Use the super admin's own session so the role-protection trigger can verify access.
+  // Use the admin's own session so the role-protection trigger can verify access.
   const supabase = await createSupabaseServerClient();
   if (!supabase) return;
   await supabase.from("profiles").update({ role }).eq("id", userId);
@@ -557,8 +562,6 @@ export async function setRoleAction(formData: FormData) {
   }
   revalidatePath("/admin/students");
   revalidatePath("/admin/teachers");
-  revalidatePath("/master/users");
-  revalidatePath("/master/instructors");
   revalidatePath("/instructors");
 }
 
@@ -569,7 +572,7 @@ const teacherSchema = z.object({
 });
 
 export async function createTeacherAction(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
-  await requireSuperAdmin();
+  await requireAdmin();
 
   if (!isSupabaseConfigured) {
     return { error: "Supabase is not connected yet. Add your project keys to .env.local and restart the app." };
@@ -640,8 +643,87 @@ export async function createTeacherAction(_state: AdminActionState, formData: Fo
   };
 }
 
+const staffSchema = teacherSchema.extend({
+  role: z.enum(["teacher", "admin", "master"]),
+});
+
+export async function createStaffAccountAction(
+  _state: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireMaster();
+
+  if (!isSupabaseConfigured) {
+    return { error: "Supabase is not connected yet. Add your project keys to .env.local." };
+  }
+
+  const parsed = staffSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    role: formData.get("role"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the account details." };
+
+  const email = parsed.data.email.toLowerCase();
+  const fullName = parsed.data.fullName;
+  const role = parsed.data.role;
+
+  if (isSupabaseAdminConfigured) {
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.auth.admin.createUser({
+      email,
+      password: parsed.data.password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    });
+    if (error) return { error: error.message };
+    if (!data.user) return { error: "Could not create the account." };
+
+    const { error: profileError } = await admin
+      .from("profiles")
+      .upsert({ id: data.user.id, full_name: fullName, role }, { onConflict: "id" });
+    if (profileError) return { error: profileError.message };
+
+    revalidatePath("/admin/students");
+    revalidatePath("/admin/teachers");
+    return { message: `${email} can now log in as ${role}.` };
+  }
+
+  const publicClient = createSupabasePublicClient();
+  if (!publicClient) return { error: "Supabase is not connected yet." };
+
+  const { data, error } = await publicClient.auth.signUp({
+    email,
+    password: parsed.data.password,
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent("/admin")}`,
+    },
+  });
+  if (error) return { error: error.message };
+  if (!data.user) return { error: "Could not create the account." };
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { error: "Supabase is not connected yet." };
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ role, full_name: fullName })
+    .eq("id", data.user.id);
+  if (profileError) return { error: `Account created, but the role could not be set: ${profileError.message}` };
+
+  revalidatePath("/admin/students");
+  revalidatePath("/admin/teachers");
+  return {
+    message: data.session
+      ? `${email} can now log in as ${role}.`
+      : `Account created. Ask ${email} to confirm the email, then log in.`,
+  };
+}
+
 export async function promoteTeacherAction(formData: FormData) {
-  const current = await requireSuperAdmin();
+  const current = await requireAdmin();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email) return;
 
@@ -677,7 +759,7 @@ export async function assignTeacherCoursesAction(formData: FormData) {
 }
 
 export async function removeTeacherAction(formData: FormData) {
-  const current = await requireSuperAdmin();
+  const current = await requireAdmin();
   const teacherId = String(formData.get("teacherId") ?? "");
   if (!teacherId || teacherId === current.id) return;
 
@@ -687,4 +769,54 @@ export async function removeTeacherAction(formData: FormData) {
   await supabase.from("profiles").update({ role: "student" }).eq("id", teacherId);
   revalidatePath("/admin/teachers");
   revalidatePath("/admin/students");
+}
+
+
+const moduleSchema = z.object({
+  id: z.string().optional(),
+  courseId: z.string().min(1),
+  title: z.string().trim().min(2, "Module title is required.").max(160),
+  position: z.coerce.number().int().min(1),
+});
+
+export async function saveModuleAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = moduleSchema.safeParse({
+    id: formData.get("id") || undefined,
+    courseId: formData.get("courseId"),
+    title: formData.get("title"),
+    position: formData.get("position"),
+  });
+  if (!parsed.success) return;
+
+  const admin = await getAdminClient();
+  const { data: course } = await admin.from("courses").select("slug").eq("id", parsed.data.courseId).maybeSingle();
+  if (!course) return;
+
+  const values = {
+    course_id: parsed.data.courseId,
+    title: parsed.data.title,
+    position: parsed.data.position,
+  };
+  const { error } = parsed.data.id
+    ? await admin.from("course_modules").update(values).eq("id", parsed.data.id)
+    : await admin.from("course_modules").insert(values);
+  if (error) return;
+
+  revalidatePath(`/admin/courses/${parsed.data.courseId}`);
+  revalidatePath(`/courses/${course.slug}`);
+  revalidatePath("/courses");
+  revalidateTag("catalog");
+}
+
+export async function deleteModuleAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!id || !courseId) return;
+
+  const admin = await getAdminClient();
+  await admin.from("course_modules").delete().eq("id", id).eq("course_id", courseId);
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidateTag("catalog");
 }

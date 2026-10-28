@@ -5,7 +5,7 @@ import { getCategories, getCourses } from "@/lib/data";
 export const metadata: Metadata = {
   title: "Explore",
   description:
-    "Explore every Your IT Class course by category, level and price, then pick the path that fits your goals.",
+    "Explore every LearnHub course by category, level and price, then pick the path that fits your goals.",
 };
 
 export const revalidate = 300;

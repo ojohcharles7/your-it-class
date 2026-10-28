@@ -7,8 +7,13 @@ import { isSupabaseAdminConfigured } from "./env";
 import { fixtureCourses, fixtureLessons, fixtureReviews } from "./fixtures";
 import type {
   Certificate,
+  Coupon,
   Course,
+  CourseAnnouncement,
+  CourseAnswer,
   CourseDetail,
+  CourseModule,
+  CourseQuestion,
   CourseResource,
   EnrolledCourse,
   Enrollment,
@@ -20,7 +25,9 @@ import type {
   InstructorProfile,
   Lesson,
   LessonProgress,
+  ManualPaymentDetails,
   Payment,
+  PaymentSubmission,
   PayoutRequest,
   Review,
 } from "./types";
@@ -53,6 +60,7 @@ type CourseRow = {
 type LessonRow = {
   id: string;
   course_id: string;
+  module_id?: string | null;
   position: number;
   title: string;
   youtube_id: string;
@@ -61,6 +69,88 @@ type LessonRow = {
   video_size?: number | string | null;
   duration_min: number;
   is_free: boolean;
+};
+
+type ModuleRow = {
+  id: string;
+  course_id: string;
+  title: string;
+  position: number;
+  created_at: string;
+};
+
+type QuestionRow = {
+  id: string;
+  course_id: string;
+  lesson_id: string | null;
+  user_id: string;
+  body: string;
+  resolved: boolean;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  course_answers?: AnswerRow[] | null;
+};
+
+type AnswerRow = {
+  id: string;
+  question_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+type AnnouncementRow = {
+  id: string;
+  course_id: string;
+  created_by: string;
+  title: string;
+  body: string;
+  created_at: string;
+  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+type CouponRow = {
+  id: string;
+  code: string;
+  course_id: string | null;
+  instructor_id: string | null;
+  discount_type: "percent" | "amount";
+  discount_value: number;
+  max_redemptions: number | null;
+  starts_at: string | null;
+  expires_at: string | null;
+  active: boolean;
+  created_at: string;
+  courses?: { title: string } | { title: string }[] | null;
+  coupon_redemptions?: Count;
+};
+
+type PaymentSubmissionRow = {
+  id: string;
+  user_id: string;
+  course_id: string;
+  coupon_id: string | null;
+  original_amount_kobo: number;
+  discount_kobo: number;
+  amount_kobo: number;
+  sale_channel: "marketplace" | "referral";
+  referral_code: string;
+  payer_name: string;
+  payer_phone: string;
+  bank_reference: string;
+  note: string;
+  proof_path: string;
+  status: PaymentSubmission["status"];
+  review_note: string;
+  reviewed_at: string | null;
+  payment_id: string | null;
+  created_at: string;
+  courses?: { title: string; slug: string } | { title: string; slug: string }[] | null;
+  profiles?: { full_name: string | null; email: string | null } | { full_name: string | null; email: string | null }[] | null;
+  coupons?: { code: string } | { code: string }[] | null;
 };
 
 type ResourceRow = {
@@ -147,6 +237,11 @@ type PaymentRow = {
   amount_kobo: number;
   status: "pending" | "success" | "failed";
   provider: string;
+  original_amount_kobo?: number | null;
+  discount_kobo?: number | null;
+  coupon_id?: string | null;
+  sale_channel?: string | null;
+  referral_code?: string | null;
   created_at: string;
 };
 
@@ -181,6 +276,7 @@ function mapLesson(row: LessonRow): Lesson {
   return {
     id: row.id,
     courseId: row.course_id,
+    moduleId: row.module_id ?? null,
     position: row.position,
     title: row.title,
     youtubeId: row.youtube_id,
@@ -190,6 +286,16 @@ function mapLesson(row: LessonRow): Lesson {
     hasVideo: Boolean(row.video_path),
     durationMin: row.duration_min,
     isFree: row.is_free,
+  };
+}
+
+function mapModule(row: ModuleRow): CourseModule {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    title: row.title,
+    position: row.position,
+    createdAt: row.created_at,
   };
 }
 
@@ -279,6 +385,7 @@ async function loadCourseBySlug(slug: string): Promise<CourseDetail | null> {
     return {
       ...proxyCourse(course, fixtureLessons[slug] ?? []),
       lessons: fixtureLessons[slug] ?? [],
+      modules: [],
       reviews: fixtureReviews.filter((review) => review.courseId === course.id),
     };
   }
@@ -297,15 +404,17 @@ async function loadCourseBySlug(slug: string): Promise<CourseDetail | null> {
     return {
       ...proxyCourse(course, fixtureLessons[slug] ?? []),
       lessons: fixtureLessons[slug] ?? [],
+      modules: [],
       reviews: fixtureReviews.filter((review) => review.courseId === course.id),
     };
   }
   if (!data) return null;
 
   const course = mapCourse(data as CourseRow);
-  const [{ data: lessonRows }, { data: reviewRows }] = await Promise.all([
+  const [{ data: lessonRows }, { data: reviewRows }, { data: moduleRows }] = await Promise.all([
     supabase.from("lessons").select("*").eq("course_id", course.id).order("position"),
     supabase.from("reviews").select("*").eq("course_id", course.id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("course_modules").select("*").eq("course_id", course.id).order("position"),
   ]);
 
   const lessons = ((lessonRows ?? []) as LessonRow[]).map(mapLesson);
@@ -313,6 +422,7 @@ async function loadCourseBySlug(slug: string): Promise<CourseDetail | null> {
     ...course,
     lessonsCount: lessons.length,
     lessons,
+    modules: ((moduleRows ?? []) as ModuleRow[]).map(mapModule),
     reviews: ((reviewRows ?? []) as ReviewRow[]).map(mapReview),
   };
 }
@@ -458,11 +568,22 @@ export async function getLearningCourse(userId: string, slug: string) {
     .maybeSingle();
   if (!enrollmentRow) return null;
 
-  const [{ data: lessonRows }, { data: progressRows }, { data: examRow }, { data: certificateRow }] = await Promise.all([
+  const [
+    { data: lessonRows },
+    { data: progressRows },
+    { data: examRow },
+    { data: certificateRow },
+    { data: moduleRows },
+    announcements,
+    questions,
+  ] = await Promise.all([
     supabase.from("lessons").select("*").eq("course_id", course.id).order("position"),
     supabase.from("lesson_progress").select("lesson_id, completed_at").eq("user_id", userId),
     supabase.from("exams").select("*, exam_questions(count)").eq("course_id", course.id).maybeSingle(),
     supabase.from("certificates").select("*").eq("user_id", userId).eq("course_id", course.id).maybeSingle(),
+    supabase.from("course_modules").select("*").eq("course_id", course.id).order("position"),
+    getCourseAnnouncements(course.id),
+    getCourseQuestions(course.id),
   ]);
 
   const lessons = ((lessonRows ?? []) as LessonRow[]).map(mapLesson);
@@ -476,6 +597,9 @@ export async function getLearningCourse(userId: string, slug: string) {
     course: { ...course, lessonsCount: lessons.length },
     enrollment: mapEnrollment(enrollmentRow as EnrollmentRow),
     lessons,
+    modules: ((moduleRows ?? []) as ModuleRow[]).map(mapModule),
+    announcements,
+    questions,
     resources: await getCourseResources(course.id),
     completedIds,
     completed,
@@ -674,6 +798,11 @@ export async function getPayments(userId: string): Promise<Payment[]> {
       amountKobo: Number(row.amount_kobo),
       status: row.status,
       provider: row.provider,
+      originalAmountKobo: Number(row.original_amount_kobo ?? row.amount_kobo),
+      discountKobo: Number(row.discount_kobo ?? 0),
+      couponId: row.coupon_id ?? null,
+      saleChannel: (row.sale_channel as Payment["saleChannel"]) ?? "marketplace",
+      referralCode: row.referral_code ?? "",
       createdAt: row.created_at,
       courseTitle: course?.title,
     };
@@ -721,7 +850,7 @@ export async function getCertificateBySerial(serial: string) {
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   return {
     ...mapCertificate(row),
-    studentName: profile?.full_name || "Your IT Class Graduate",
+    studentName: profile?.full_name || "LearnHub Graduate",
     courseTitle: course?.title,
     courseSlug: course?.slug,
   } satisfies Certificate;
@@ -789,6 +918,8 @@ type InstructorProfileRow = {
   expertise: string[] | null;
   is_public: boolean;
   revenue_share_percent: number;
+  marketplace_share_percent: number;
+  referral_share_percent: number;
   bank_name: string | null;
   account_name: string | null;
   account_number: string | null;
@@ -820,6 +951,8 @@ type InstructorEarningRow = {
   gross_kobo: number;
   share_percent: number;
   amount_kobo: number;
+  sale_channel: "marketplace" | "referral";
+  platform_amount_kobo: number;
   created_at: string;
   courses?: { title: string } | { title: string }[] | null;
 };
@@ -864,6 +997,8 @@ export function mapInstructorProfile(row: InstructorProfileRow): InstructorProfi
     expertise: row.expertise ?? [],
     isPublic: row.is_public,
     revenueSharePercent: Number(row.revenue_share_percent),
+    marketplaceSharePercent: Number(row.marketplace_share_percent),
+    referralSharePercent: Number(row.referral_share_percent),
     bankName: row.bank_name ?? "",
     accountName: row.account_name ?? "",
     accountNumber: row.account_number ?? "",
@@ -961,6 +1096,7 @@ export const getInstructorCourses = getTeacherCourses;
 export type TeacherStudioCourse = {
   course: Course;
   lessons: Lesson[];
+  modules: CourseModule[];
 };
 
 export async function getTeacherStudioCourse(teacherId: string, courseId: string): Promise<TeacherStudioCourse | null> {
@@ -973,15 +1109,20 @@ export async function getTeacherStudioCourse(teacherId: string, courseId: string
   ]);
   if (!owned && !assignment) return null;
 
-  const [{ data: courseRow }, { data: lessonRows }] = await Promise.all([
+  const [{ data: courseRow }, { data: lessonRows }, { data: moduleRows }] = await Promise.all([
     supabase.from("courses").select("*, lessons(count), enrollments(count)").eq("id", courseId).maybeSingle(),
     supabase.from("lessons").select("*").eq("course_id", courseId).order("position"),
+    supabase.from("course_modules").select("*").eq("course_id", courseId).order("position"),
   ]);
   if (!courseRow) return null;
 
   const course = mapCourse(courseRow as CourseRow);
   const lessons = ((lessonRows ?? []) as LessonRow[]).map(mapLesson);
-  return { course: { ...course, lessonsCount: lessons.length }, lessons };
+  return {
+    course: { ...course, lessonsCount: lessons.length },
+    lessons,
+    modules: ((moduleRows ?? []) as ModuleRow[]).map(mapModule),
+  };
 }
 
 export async function getTeacherStudents(): Promise<TeacherStudent[]> {
@@ -1123,6 +1264,8 @@ export async function getInstructorEarnings(instructorId: string): Promise<Instr
     grossKobo: Number(row.gross_kobo),
     sharePercent: Number(row.share_percent),
     amountKobo: Number(row.amount_kobo),
+    saleChannel: row.sale_channel ?? "marketplace",
+    platformAmountKobo: Number(row.platform_amount_kobo ?? 0),
     createdAt: row.created_at,
   }));
 }
@@ -1262,4 +1405,268 @@ export async function getAdminUserEmails(): Promise<Map<string, string>> {
     if (row.email) emails.set(row.id, row.email);
   }
   return emails;
+}
+
+// =========================================================
+// Modules, Q&A and announcements
+// =========================================================
+export async function getCourseModules(courseId: string): Promise<CourseModule[]> {
+  try {
+    const supabase = await getAdminClient();
+    const { data } = await supabase.from("course_modules").select("*").eq("course_id", courseId).order("position");
+    return ((data ?? []) as ModuleRow[]).map(mapModule);
+  } catch {
+    return [];
+  }
+}
+
+function mapAnswer(row: AnswerRow): CourseAnswer {
+  return {
+    id: row.id,
+    questionId: row.question_id,
+    userId: row.user_id,
+    authorName: joinedName(row.profiles) ?? "Learner",
+    body: row.body,
+    createdAt: row.created_at,
+  };
+}
+
+function mapQuestion(row: QuestionRow): CourseQuestion {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    lessonId: row.lesson_id,
+    userId: row.user_id,
+    authorName: joinedName(row.profiles) ?? "Learner",
+    body: row.body,
+    resolved: row.resolved,
+    resolvedBy: row.resolved_by,
+    resolvedAt: row.resolved_at,
+    createdAt: row.created_at,
+    answers: (row.course_answers ?? []).map(mapAnswer).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+  };
+}
+
+export async function getCourseQuestions(courseId: string, lessonId?: string): Promise<CourseQuestion[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  let query = supabase
+    .from("course_questions")
+    .select("*, profiles(full_name), course_answers(*, profiles(full_name))")
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: false });
+  if (lessonId) query = query.eq("lesson_id", lessonId);
+  const { data, error } = await query;
+  if (error) {
+    console.warn("Could not load course questions:", error.message);
+    return [];
+  }
+  return ((data ?? []) as QuestionRow[]).map(mapQuestion);
+}
+
+function mapAnnouncement(row: AnnouncementRow): CourseAnnouncement {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    createdBy: row.created_by,
+    authorName: joinedName(row.profiles) ?? "Instructor",
+    title: row.title,
+    body: row.body,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getCourseAnnouncements(courseId: string): Promise<CourseAnnouncement[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("course_announcements")
+    .select("*, profiles(full_name)")
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("Could not load announcements:", error.message);
+    return [];
+  }
+  return ((data ?? []) as AnnouncementRow[]).map(mapAnnouncement);
+}
+
+// =========================================================
+// Coupons
+// =========================================================
+function mapCoupon(row: CouponRow): Coupon {
+  return {
+    id: row.id,
+    code: row.code,
+    courseId: row.course_id,
+    courseTitle: joinedTitle(row.courses),
+    instructorId: row.instructor_id,
+    discountType: row.discount_type,
+    discountValue: Number(row.discount_value),
+    maxRedemptions: row.max_redemptions == null ? null : Number(row.max_redemptions),
+    redeemedCount: countOf(row.coupon_redemptions),
+    startsAt: row.starts_at,
+    expiresAt: row.expires_at,
+    active: row.active,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getCoupons(options?: { instructorId?: string; courseId?: string }): Promise<Coupon[]> {
+  const admin = await getAdminClient();
+  let query = admin
+    .from("coupons")
+    .select("*, courses(title), coupon_redemptions(count)")
+    .order("created_at", { ascending: false });
+  if (options?.instructorId) query = query.eq("instructor_id", options.instructorId);
+  if (options?.courseId) query = query.eq("course_id", options.courseId);
+  const { data, error } = await query;
+  if (error) return [];
+  return ((data ?? []) as CouponRow[]).map(mapCoupon);
+}
+
+// =========================================================
+// Manual payments
+// =========================================================
+export const EMPTY_MANUAL_PAYMENT_DETAILS: ManualPaymentDetails = {
+  bankName: "",
+  accountName: "",
+  accountNumber: "",
+  instructions: "",
+};
+
+export async function getManualPaymentDetails(): Promise<ManualPaymentDetails> {
+  const supabase = createSupabasePublicClient();
+  if (!supabase) return EMPTY_MANUAL_PAYMENT_DETAILS;
+  const { data, error } = await supabase
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "manual_payment_details")
+    .maybeSingle();
+  if (error || !data?.value) return EMPTY_MANUAL_PAYMENT_DETAILS;
+  const value = data.value as Record<string, unknown>;
+  return {
+    bankName: String(value.bank_name ?? ""),
+    accountName: String(value.account_name ?? ""),
+    accountNumber: String(value.account_number ?? ""),
+    instructions: String(value.instructions ?? ""),
+  };
+}
+
+export type PlatformFinanceSettings = {
+  marketplaceSharePercent: number;
+  referralSharePercent: number;
+  minimumPayoutKobo: number;
+  manualPaymentDetails: ManualPaymentDetails;
+};
+
+export async function getPlatformFinanceSettings(): Promise<PlatformFinanceSettings> {
+  const fallback: PlatformFinanceSettings = {
+    marketplaceSharePercent: 50,
+    referralSharePercent: 80,
+    minimumPayoutKobo: 0,
+    manualPaymentDetails: EMPTY_MANUAL_PAYMENT_DETAILS,
+  };
+  if (!isSupabaseAdminConfigured) return fallback;
+
+  const admin = createSupabaseAdminClient();
+  const { data } = await admin
+    .from("platform_settings")
+    .select("key, value")
+    .in("key", ["marketplace_share_percent", "referral_share_percent", "minimum_payout_kobo", "manual_payment_details"]);
+  if (!data) return fallback;
+
+  const map = new Map(data.map((row) => [row.key as string, row.value]));
+  const details = (map.get("manual_payment_details") ?? {}) as Record<string, unknown>;
+  const numberFor = (key: string, fallbackValue: number) => {
+    const value = map.get(key);
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallbackValue;
+  };
+
+  return {
+    marketplaceSharePercent: numberFor("marketplace_share_percent", fallback.marketplaceSharePercent),
+    referralSharePercent: numberFor("referral_share_percent", fallback.referralSharePercent),
+    minimumPayoutKobo: numberFor("minimum_payout_kobo", fallback.minimumPayoutKobo),
+    manualPaymentDetails: {
+      bankName: String(details.bank_name ?? ""),
+      accountName: String(details.account_name ?? ""),
+      accountNumber: String(details.account_number ?? ""),
+      instructions: String(details.instructions ?? ""),
+    },
+  };
+}
+
+function mapPaymentSubmission(row: PaymentSubmissionRow): PaymentSubmission {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    studentName: joinedName(row.profiles),
+    studentEmail: row.profiles
+      ? Array.isArray(row.profiles)
+        ? row.profiles[0]?.email ?? undefined
+        : row.profiles.email ?? undefined
+      : undefined,
+    courseId: row.course_id,
+    courseTitle: joinedTitle(row.courses),
+    courseSlug: row.courses
+      ? Array.isArray(row.courses)
+        ? row.courses[0]?.slug
+        : row.courses.slug
+      : undefined,
+    couponId: row.coupon_id,
+    couponCode: row.coupons ? (Array.isArray(row.coupons) ? row.coupons[0]?.code : row.coupons.code) : null,
+    originalAmountKobo: Number(row.original_amount_kobo),
+    discountKobo: Number(row.discount_kobo),
+    amountKobo: Number(row.amount_kobo),
+    saleChannel: row.sale_channel,
+    referralCode: row.referral_code,
+    payerName: row.payer_name,
+    payerPhone: row.payer_phone,
+    bankReference: row.bank_reference,
+    note: row.note,
+    proofPath: row.proof_path,
+    status: row.status,
+    reviewNote: row.review_note,
+    reviewedAt: row.reviewed_at,
+    paymentId: row.payment_id,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getPaymentSubmissions(userId: string): Promise<PaymentSubmission[]> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("payment_submissions")
+    .select("*, courses(title, slug), coupons(code)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return ((data ?? []) as PaymentSubmissionRow[]).map(mapPaymentSubmission);
+}
+
+export async function getLatestPaymentSubmission(userId: string, courseId: string): Promise<PaymentSubmission | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("payment_submissions")
+    .select("*, courses(title, slug), coupons(code)")
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? mapPaymentSubmission(data as PaymentSubmissionRow) : null;
+}
+
+export async function getPaymentSubmissionsForReview(): Promise<PaymentSubmission[]> {
+  if (!isSupabaseAdminConfigured) return [];
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("payment_submissions")
+    .select("*, courses(title, slug), profiles(full_name, email), coupons(code)")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return ((data ?? []) as PaymentSubmissionRow[]).map(mapPaymentSubmission);
 }

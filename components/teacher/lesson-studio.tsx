@@ -16,7 +16,7 @@ import {
   Link2,
 } from "lucide-react";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import type { AdminActionState, Lesson } from "@/lib/types";
+import type { AdminActionState, CourseModule, Lesson } from "@/lib/types";
 import { MAX_VIDEO_BYTES, VIDEO_ACCEPT, videoContentType } from "@/lib/uploads";
 import { formatBytes } from "@/lib/utils";
 
@@ -30,6 +30,7 @@ export type LessonStudioActions = {
   save: (input: {
     id?: string;
     courseId: string;
+    moduleId?: string | null;
     position: number;
     title: string;
     youtubeId?: string;
@@ -47,11 +48,13 @@ function LessonForm({
   courseId,
   lesson,
   nextPosition,
+  modules,
   actions,
 }: {
   courseId: string;
   lesson?: Lesson;
   nextPosition: number;
+  modules: CourseModule[];
   actions: LessonStudioActions;
 }) {
   const router = useRouter();
@@ -71,6 +74,7 @@ function LessonForm({
     const youtube = String(data.get("youtubeId") ?? "").trim();
     const position = Number(data.get("position"));
     const durationMin = Number(data.get("durationMin"));
+    const moduleId = String(data.get("moduleId") ?? "") || null;
 
     if (!file && !youtube && !lesson?.hasVideo) {
       setError("Upload a video file or add a YouTube video ID.");
@@ -133,6 +137,7 @@ function LessonForm({
       const saved = await actions.save({
         id: lesson?.id,
         courseId,
+        moduleId,
         position,
         title,
         youtubeId: file ? "" : youtube,
@@ -188,6 +193,16 @@ function LessonForm({
           <label className="label">Lesson title</label>
           <input name="title" className="input" defaultValue={lesson?.title} placeholder="e.g. Setting up your tools" required />
         </div>
+      </div>
+
+      <div>
+        <label className="label">Module</label>
+        <select name="moduleId" className="input" defaultValue={lesson?.moduleId ?? modules[0]?.id ?? ""}>
+          <option value="">No module</option>
+          {modules.map((module) => (
+            <option key={module.id} value={module.id}>{module.position}. {module.title}</option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-xl border border-[var(--line)] bg-[color-mix(in_srgb,var(--accent)_4%,transparent)] p-3">
@@ -267,10 +282,12 @@ function LessonForm({
 export function LessonStudio({
   courseId,
   lessons,
+  modules,
   actions,
 }: {
   courseId: string;
   lessons: Lesson[];
+  modules: CourseModule[];
   actions: LessonStudioActions;
 }) {
   return (
@@ -305,7 +322,7 @@ export function LessonStudio({
               <ChevronDown size={15} className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180" />
             </summary>
             <div className="border-t border-[var(--line)] p-3">
-              <LessonForm courseId={courseId} lesson={lesson} nextPosition={lesson.position} actions={actions} />
+              <LessonForm courseId={courseId} lesson={lesson} nextPosition={lesson.position} modules={modules} actions={actions} />
               <form action={actions.delete} className="mt-3 flex justify-end border-t border-[var(--line)] pt-3">
                 <input type="hidden" name="id" value={lesson.id} />
                 <input type="hidden" name="courseId" value={courseId} />
@@ -328,7 +345,7 @@ export function LessonStudio({
           <Plus size={16} className="text-[var(--accent)]" /> Add a lesson video
         </summary>
         <div className="border-t border-[var(--line)] p-3">
-          <LessonForm key={`add-${lessons.length}`} courseId={courseId} nextPosition={lessons.length + 1} actions={actions} />
+          <LessonForm key={`add-${lessons.length}`} courseId={courseId} nextPosition={lessons.length + 1} modules={modules} actions={actions} />
         </div>
       </details>
     </section>

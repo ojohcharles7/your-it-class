@@ -56,7 +56,7 @@ export function PayoutForm({ availableKobo, hasBankDetails }: { availableKobo: n
         <p className="mt-1 text-[11px] text-[var(--muted)]">Available: {naira(availableKobo)}</p>
       </div>
       <div>
-        <label className="label">Note for the master account (optional)</label>
+        <label className="label">Note for an admin (optional)</label>
         <textarea name="note" className="textarea min-h-20" placeholder="Any details about this payout request…" />
       </div>
       <div className="flex justify-end">

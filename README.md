@@ -1,4 +1,4 @@
-# Your IT Class
+# LearnHub
 
 A full-stack learning platform for Nigerian learners — built with Next.js 15, Supabase, Paystack and YouTube.
 
@@ -45,7 +45,7 @@ The admin panel works without any credentials so you can review the full interfa
 `/admin/login` and sign in with:
 
 ```
-admin@youritclass.local
+admin@learnhub.local
 admin123
 ```
 
@@ -54,7 +54,7 @@ Writes, exports and live records stay disabled until Supabase is connected. Over
 `.env.local`:
 
 ```env
-LOCAL_ADMIN_EMAIL=admin@youritclass.local
+LOCAL_ADMIN_EMAIL=admin@learnhub.local
 LOCAL_ADMIN_PASSWORD=choose-a-strong-password
 LOCAL_ADMIN_SECRET=random-long-string
 ```
@@ -83,7 +83,7 @@ Local preview mode turns off automatically as soon as `NEXT_PUBLIC_SUPABASE_URL`
    NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    SUPABASE_SERVICE_ROLE_KEY=...
-   NEXT_PUBLIC_SUPPORT_EMAIL=support@youritclass.com
+   NEXT_PUBLIC_SUPPORT_EMAIL=support@learnhub.com
    ```
 
 5. **Authentication → URL Configuration**: add `<NEXT_PUBLIC_SITE_URL>/auth/callback` to the
@@ -105,53 +105,23 @@ Local preview mode turns off automatically as soon as `NEXT_PUBLIC_SUPABASE_URL`
 
    Log out and back in, then visit `/admin`.
 
-9. Create the master super admin account (defaults to `ojohcharles7@gmail.com` /
-   `Admin@2026`):
-
-   ```bash
-   npm run create-master
-   ```
-
-   This creates (or updates) the login and sets its role to `super_admin`. Sign in at
-   `/login`, then open `/admin/teachers` to add teachers and assign the classes they
-   teach. Override the defaults with `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD` and
-   `MASTER_ADMIN_NAME` in `.env.local`.
-
-   > The teachers migration also auto-promotes a newly signed-up
-   > `ojohcharles7@gmail.com` account to `super_admin`. You can therefore sign up
-   > manually with that email if you cannot use the service-role script.
-
 > `SUPABASE_SERVICE_ROLE_KEY` is server-only. Never prefix it with `NEXT_PUBLIC_`.
 
-### Master admin & teachers
+### Admin & instructors
 
-The master account is `ojohcharles7@gmail.com` / `Admin@2026`. After running the
-`20261021150000_teachers.sql` migration:
+After running the migrations:
 
-- With `SUPABASE_SERVICE_ROLE_KEY` set, run:
-
-  ```bash
-  npm run create-master
-  ```
-
-  This creates (or updates) the master login and makes it a `super_admin`.
-
-- Without the service key, the `handle_new_user` trigger in the migration automatically makes
-  that email a `super_admin` when it signs up at `/signup` (use the password above).
-- If the account already exists, run this once in the Supabase SQL editor:
-
-  ```sql
-  update public.profiles
-  set role = 'super_admin'
-  where id = (select id from auth.users where lower(email) = 'ojohcharles7@gmail.com');
-  ```
-
-Then:
-
-1. Log in as the master and open **`/admin/teachers`**.
+1. Log in as an admin and open **`/admin/teachers`**.
 2. Add a teacher (with the service key) or ask the teacher to sign up and promote their email.
 3. Tick the classes that teacher teaches and save.
-4. The teacher logs in and opens **`/teacher`** to see their classes and every learner who paid.
+4. The teacher logs in and opens **`/instructor`** to see their classes and every learner who paid.
+
+### Master user
+
+The master account is `ojohcharles7@gmail.com` / `Admin@2026`. Apply
+`20261029000000_master_user.sql` to link it as a `master` profile. Master users sign in
+through the yellow dot in the footer and can assign roles or create staff accounts from
+`/admin/students`. Override the linked email with `MASTER_ADMIN_EMAIL`.
 
 ## 2. Paystack setup
 
@@ -205,7 +175,6 @@ registers the service worker and shows the install prompt, and `public/sw.js` ca
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript (`tsc --noEmit`) |
 | `npm run db:seed` | Seed courses, lessons, exams and questions |
-| `npm run create-master` | Create/update the master super admin login |
 | `npm run grant-admin <email>` | Promote an existing account to admin |
 
 ## Routes
@@ -231,8 +200,6 @@ registers the service worker and shows the install prompt, and `public/sw.js` ca
 | `/admin/courses` | Course catalogue management |
 | `/admin/courses/[id]` | Course, lesson and exam editor |
 | `/admin/students` | Accounts, progress and roles |
-| `/admin/payments` | Payment ledger and filters |
-| `/admin/certificates` | Issued certificate registry |
 | `/admin/export?type=payments` | CSV export (`payments`, `students`, `courses`, `certificates`) |
 | `/api/paystack/webhook` | Paystack webhook |
 | `/terms`, `/privacy`, `/refunds` | Legal policies |

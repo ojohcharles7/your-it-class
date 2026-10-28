@@ -8,7 +8,7 @@ import { initials } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Instructors",
-  description: "Meet the practitioners teaching practical technology courses on Your IT Class.",
+  description: "Meet the practitioners teaching practical technology courses on LearnHub.",
 };
 export const dynamic = "force-dynamic";
 
@@ -55,7 +55,7 @@ export default async function InstructorsPage() {
                   {instructor.fullName || "Instructor"}
                 </h2>
                 <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-[var(--muted)]">
-                  {instructor.headline || "Instructor at Your IT Class"}
+                  {instructor.headline || "Instructor at LearnHub"}
                 </p>
               </div>
             </div>

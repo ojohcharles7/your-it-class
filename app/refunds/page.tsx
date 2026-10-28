@@ -5,7 +5,7 @@ import { supportEmail } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Refund Policy",
-  description: "When and how Your IT Class issues refunds for course purchases.",
+  description: "When and how LearnHub issues refunds for course purchases.",
 };
 
 export default function RefundsPage() {

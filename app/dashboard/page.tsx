@@ -1,11 +1,14 @@
 import Link from "next/link";
 import {
   Award,
+  BadgeCheck,
   BookOpen,
   CheckCircle2,
   ChevronRight,
+  Clock,
   FileText,
   GraduationCap,
+  ShieldCheck,
   TrendingUp,
 } from "lucide-react";
 import { EnrolledCourseCard } from "@/components/dashboard/enrolled-course-card";
@@ -66,19 +69,62 @@ export default async function DashboardOverviewPage({
     <div className="space-y-6">
       <div className="glass relative overflow-hidden p-6">
         <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] blur-2xl" />
-        <div className="relative flex flex-wrap items-end justify-between gap-4">
+        <div className="relative grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Dashboard</p>
             <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">Welcome back, {firstName} 👋</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">Pick up where you left off and keep your momentum going.</p>
+            <div className="mt-4 flex gap-2">
+              <Link href="/courses" className="btn">Browse courses</Link>
+              {courses.length > 0 && (
+                <Link href="/dashboard/courses" className="btn btn-primary">
+                  My courses <ChevronRight size={15} />
+                </Link>
+              )}
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Link href="/courses" className="btn">Browse courses</Link>
-            {courses.length > 0 && (
-              <Link href="/dashboard/courses" className="btn btn-primary">
-                My courses <ChevronRight size={15} />
-              </Link>
-            )}
+
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--line)] bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-solid))] p-4">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] blur-2xl" />
+            <div className="relative flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">Workspace</p>
+                <p className="mt-1 text-sm font-semibold">Your learning workspace</p>
+              </div>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] text-white shadow-lg">
+                <GraduationCap size={17} />
+              </span>
+            </div>
+
+            <p className="relative mt-3 text-[11px] text-[var(--muted)]">Lessons, exams &amp; certificates</p>
+
+            <div className="relative mt-3">
+              <div className="flex items-center justify-between text-[11px] font-semibold">
+                <span className="text-[var(--muted)]">Course progress</span>
+                <span>{averageProgress}%</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ink)_10%,transparent)]">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]"
+                  style={{ width: `${averageProgress}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="relative mt-3 grid grid-cols-2 gap-1.5 text-[10px] font-semibold text-[var(--muted)]">
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck size={12} className="text-[var(--accent)]" /> Secure access
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock size={12} className="text-[var(--accent)]" /> 24/7 online
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-[var(--success)]" /> Certified
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <BadgeCheck size={12} className="text-[var(--success)]" /> Verifiable
+              </span>
+            </div>
           </div>
         </div>
       </div>
